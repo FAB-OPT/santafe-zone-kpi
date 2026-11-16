@@ -91,6 +91,7 @@ td .b{font-size:12px}
 .present .bar{display:none}
 body.present{overflow:hidden;background:#15171F}
 body.present #viewport{position:fixed;inset:0;padding:0;background:#15171F;align-items:center;overflow:hidden}
+body.present.pscroll #viewport{overflow-y:auto;overflow-x:hidden;align-items:flex-start;scrollbar-width:thin;scrollbar-color:#555 transparent}
 body.present #stage{cursor:pointer}
 .pnav{position:fixed;right:18px;bottom:16px;z-index:30;display:none;gap:6px;align-items:center;background:rgba(20,22,30,.78);padding:6px;border-radius:12px}
 body.present .pnav{display:flex}
@@ -462,8 +463,18 @@ function fit(){
   if(pres){
     // โหมดพรีเซนต์: ขยายความกว้างสไลด์ให้ตรงสัดส่วนจอ แล้วย่อให้พอดีทั้งสองแกน (ไม่เหลือขอบดำ)
     const vw=window.innerWidth, vh=window.innerHeight;
+    document.documentElement.style.setProperty('--sw','1600px');
     if(sl) sl.style.minHeight='0';
     s=vh/st.offsetHeight;
+    // สไลด์ยาวมาก (เช่น 65 สาขา): บีบให้พอดีจอจะเล็กเกินอ่าน → เต็มความกว้างจอ แล้วเลื่อนลงดู
+    if(s < 0.7*(vw/1600)){
+      document.body.classList.add('pscroll');
+      s=vw/1600; W=1600;
+      st.style.transform=`scale(${s})`; wrap.style.width=vw+'px'; wrap.style.height=st.offsetHeight*s+'px';
+      const n0=document.getElementById('pNum'); if(n0) n0.textContent=`${state.slide+1} / ${SLIDES.length}`;
+      return;
+    }
+    document.body.classList.remove('pscroll');
     for(let i=0;i<4;i++){
       W=Math.max(1600, Math.round(vw/s));
       document.documentElement.style.setProperty('--sw',W+'px');
@@ -476,6 +487,7 @@ function fit(){
     if(sl) sl.style.minHeight=Math.ceil(vh/s)+'px';           // เนื้อหาสั้นกว่าจอ → ยืดพื้นหลังให้เต็ม
     s=Math.min(vw/W, vh/st.offsetHeight);
   } else {
+    document.body.classList.remove('pscroll');
     document.documentElement.style.setProperty('--sw','1600px');
     if(sl) sl.style.minHeight='';
     s=(document.getElementById('viewport').clientWidth-20)/1600;                     // ปกติ: เต็มความกว้าง เลื่อนลงดูได้
@@ -494,6 +506,7 @@ function buildControls(){
   mo.value=state.ytd?'ytd':state.month;
 }
 function setSlide(i){ state.slide=(i+SLIDES.length)%SLIDES.length;
+  document.getElementById('viewport').scrollTop=0;
   document.querySelectorAll('.tab').forEach((t,j)=>t.classList.toggle('on',j===state.slide)); render(); }
 document.getElementById('tabs').addEventListener('click',e=>{const t=e.target.closest('.tab'); if(t) setSlide(+t.dataset.i);});
 document.getElementById('scope').addEventListener('change',e=>{state.scope=e.target.value; render();});
@@ -501,6 +514,8 @@ document.getElementById('month').addEventListener('change',e=>{ if(e.target.valu
 document.addEventListener('keydown',e=>{ if(e.target.tagName==='SELECT'||e.target.tagName==='INPUT'||!DATA) return;
   if(e.key==='Escape' && document.body.classList.contains('present')) stopPresent();
   if(e.key===' ' && document.body.classList.contains('present')){ e.preventDefault(); setSlide(state.slide+1); }
+  if(document.body.classList.contains('pscroll') && (e.key==='ArrowDown'||e.key==='ArrowUp')){ e.preventDefault();
+    document.getElementById('viewport').scrollBy({top:(e.key==='ArrowDown'?1:-1)*160,behavior:'smooth'}); return; }
   if(e.key==='ArrowRight'||e.key==='PageDown') setSlide(state.slide+1);
   if(e.key==='ArrowLeft'||e.key==='PageUp') setSlide(state.slide-1); });
 window.addEventListener('resize',()=>fit());
