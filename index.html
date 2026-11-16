@@ -90,13 +90,12 @@ td .b{font-size:12px}
 .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:70vh;color:var(--ink2);gap:12px;text-align:center}
 .present .bar{display:none}
 body.present{overflow:hidden;background:#15171F}
-body.present #viewport{position:fixed;inset:0;padding:0;background:#15171F;align-items:center;overflow:hidden}
-body.present.pscroll #viewport{overflow-y:auto;overflow-x:hidden;align-items:flex-start;scrollbar-width:thin;scrollbar-color:#555 transparent}
-body.present #stage{cursor:pointer}
-.pnav{position:fixed;right:18px;bottom:16px;z-index:30;display:none;gap:6px;align-items:center;background:rgba(20,22,30,.78);padding:6px;border-radius:12px}
+body.present #viewport{position:fixed;inset:0 0 52px 0;padding:0;background:#FAF7F4;align-items:flex-start;overflow-y:scroll;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:#C9BDB2 transparent}
+.pnav{position:fixed;left:0;right:0;bottom:0;height:52px;z-index:30;display:none;gap:8px;align-items:center;background:#D98029;color:#fff;padding:0 24px 0 28px}
+.pnav .pt{margin-right:auto;font-size:15px;font-weight:700;opacity:.95;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 body.present .pnav{display:flex}
-.pnav button{font:inherit;font-size:14px;font-weight:700;border:0;border-radius:8px;padding:7px 12px;background:rgba(255,255,255,.12);color:#fff;cursor:pointer}
-.pnav span{color:#fff;font-size:14px;font-weight:700;padding:0 8px}
+.pnav button{font:inherit;font-size:14px;font-weight:700;border:0;border-radius:8px;padding:7px 14px;background:rgba(255,255,255,.18);color:#fff;cursor:pointer}.pnav button:hover{background:rgba(255,255,255,.3)}
+.pnav #pNum{color:#fff;font-size:14px;font-weight:700;padding:0 8px}
 .landing{position:fixed;inset:0;z-index:40;background:linear-gradient(160deg,#FFF6EF,#FAF7F4 50%,#F3EEE9);overflow:auto;display:flex;flex-direction:column;align-items:center;padding:56px 20px}
 .landing h1{font-size:34px;font-weight:800;margin:16px 0 6px} .landing p{color:var(--ink2);font-size:16px;margin:0 0 28px}
 .amgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px;width:100%;max-width:1000px}
@@ -156,7 +155,7 @@ body.locked .bar,body.locked #viewport{visibility:hidden}
     <button class="btn" id="pinCancel">ยกเลิก</button><button class="btn pri" id="pinOk">เข้าดู</button></div>
 </div></div>
 <div id="viewport"><div id="stageWrap"><div id="stage"></div></div></div>
-<div class="pnav"><button id="pPrev">◀</button><span id="pNum">1 / 5</span><button id="pNext">▶</button><button id="pExit">✕ ออก</button></div>
+<div class="pnav"><span class="pt">Santa Fe · Zone KPI · <span id="pTitle"></span></span><button id="pPrev">‹ ก่อนหน้า</button><span id="pNum">1 / 5</span><button id="pNext">ถัดไป ›</button><button id="pExit">ออก (Esc)</button></div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -456,44 +455,22 @@ function drawChart(S){
         y:{grace:'8%',grid:{color:'#F1ECE7'},border:{display:false},ticks:{color:'#9CA3AF',font:{family:'Sarabun',size:12},callback:v=>(S.chart.axis||S.chart.fmt)(v)}}}}});
 }
 function fit(){
-  const wrap=document.getElementById('stageWrap'), st=document.getElementById('stage');
+  const wrap=document.getElementById('stageWrap'), st=document.getElementById('stage'), vp=document.getElementById('viewport');
   const pres=document.body.classList.contains('present');
   const sl=document.getElementById('slide');
-  let s, W=1600;
+  let s;
   if(pres){
-    // โหมดพรีเซนต์: ขยายความกว้างสไลด์ให้ตรงสัดส่วนจอ แล้วย่อให้พอดีทั้งสองแกน (ไม่เหลือขอบดำ)
-    const vw=window.innerWidth, vh=window.innerHeight;
-    document.documentElement.style.setProperty('--sw','1600px');
-    if(sl) sl.style.minHeight='0';
-    s=vh/st.offsetHeight;
-    // สไลด์ยาวมาก (เช่น 65 สาขา): บีบให้พอดีจอจะเล็กเกินอ่าน → เต็มความกว้างจอ แล้วเลื่อนลงดู
-    if(s < 0.7*(vw/1600)){
-      document.body.classList.add('pscroll');
-      s=vw/1600; W=1600;
-      st.style.transform=`scale(${s})`; wrap.style.width=vw+'px'; wrap.style.height=st.offsetHeight*s+'px';
-      const n0=document.getElementById('pNum'); if(n0) n0.textContent=`${state.slide+1} / ${SLIDES.length}`;
-      return;
-    }
-    document.body.classList.remove('pscroll');
-    for(let i=0;i<4;i++){
-      W=Math.max(1600, Math.round(vw/s));
-      document.documentElement.style.setProperty('--sw',W+'px');
-      const ns=vh/st.offsetHeight;
-      if(Math.abs(ns-s)<0.001){ s=ns; break; }
-      s=ns;
-    }
-    W=Math.max(1600, Math.round(vw/s));
-    document.documentElement.style.setProperty('--sw',W+'px');
-    if(sl) sl.style.minHeight=Math.ceil(vh/s)+'px';           // เนื้อหาสั้นกว่าจอ → ยืดพื้นหลังให้เต็ม
-    s=Math.min(vw/W, vh/st.offsetHeight);
+    // โหมดพรีเซนต์: เต็มความกว้างจอเสมอ (ไม่มีขอบดำซ้ายขวา) เนื้อหายาวเลื่อนลงดู มีแถบควบคุมล่าง
+    const vh=window.innerHeight, barH=52;
+    s=vp.clientWidth/1600;
+    if(sl) sl.style.minHeight=Math.ceil((vh-barH)/s)+'px';   // สไลด์สั้นกว่าจอ → ยืดพื้นหลังให้เต็ม
   } else {
-    document.body.classList.remove('pscroll');
-    document.documentElement.style.setProperty('--sw','1600px');
     if(sl) sl.style.minHeight='';
-    s=(document.getElementById('viewport').clientWidth-20)/1600;                     // ปกติ: เต็มความกว้าง เลื่อนลงดูได้
+    s=(vp.clientWidth-20)/1600;                              // ปกติ: เต็มความกว้าง เลื่อนลงดูได้
   }
-  st.style.transform=`scale(${s})`; wrap.style.width=W*s+'px'; wrap.style.height=st.offsetHeight*s+'px';
+  st.style.transform=`scale(${s})`; wrap.style.width=1600*s+'px'; wrap.style.height=st.offsetHeight*s+'px';
   const n=document.getElementById('pNum'); if(n) n.textContent=`${state.slide+1} / ${SLIDES.length}`;
+  const t=document.getElementById('pTitle'); if(t) t.textContent=SLIDES[state.slide].title;
 }
 /* ================= UI ================= */
 function buildControls(){
@@ -514,7 +491,7 @@ document.getElementById('month').addEventListener('change',e=>{ if(e.target.valu
 document.addEventListener('keydown',e=>{ if(e.target.tagName==='SELECT'||e.target.tagName==='INPUT'||!DATA) return;
   if(e.key==='Escape' && document.body.classList.contains('present')) stopPresent();
   if(e.key===' ' && document.body.classList.contains('present')){ e.preventDefault(); setSlide(state.slide+1); }
-  if(document.body.classList.contains('pscroll') && (e.key==='ArrowDown'||e.key==='ArrowUp')){ e.preventDefault();
+  if(document.body.classList.contains('present') && (e.key==='ArrowDown'||e.key==='ArrowUp')){ e.preventDefault();
     document.getElementById('viewport').scrollBy({top:(e.key==='ArrowDown'?1:-1)*160,behavior:'smooth'}); return; }
   if(e.key==='ArrowRight'||e.key==='PageDown') setSlide(state.slide+1);
   if(e.key==='ArrowLeft'||e.key==='PageUp') setSlide(state.slide-1); });
@@ -533,7 +510,6 @@ document.getElementById('fs').addEventListener('click',startPresent);
 document.getElementById('pExit').addEventListener('click',e=>{e.stopPropagation(); stopPresent();});
 document.getElementById('pPrev').addEventListener('click',e=>{e.stopPropagation(); setSlide(state.slide-1);});
 document.getElementById('pNext').addEventListener('click',e=>{e.stopPropagation(); setSlide(state.slide+1);});
-document.getElementById('stage').addEventListener('click',()=>{ if(document.body.classList.contains('present')) setSlide(state.slide+1); });
 document.addEventListener('fullscreenchange',()=>{ if(!document.fullscreenElement && document.body.classList.contains('present')) stopPresent(); });
 
 function toast(t,ms=2600){ const el=document.getElementById('toast'); el.textContent=t; el.style.display='block'; clearTimeout(toast._t); toast._t=setTimeout(()=>el.style.display='none',ms); }
