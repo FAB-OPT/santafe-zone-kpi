@@ -39,8 +39,8 @@ select,.btn{font:inherit;font-size:13px;border:1px solid var(--line);background:
 /* ---------- stage ---------- */
 #viewport{display:flex;justify-content:center;padding:10px;overflow:auto;background:#F3EEE9}
 #stageWrap{position:relative}
-#stage{width:1600px;transform-origin:top left}
-.slide{width:1600px;min-height:900px;background:linear-gradient(160deg,#FFF6EF 0%,#FAF7F4 45%,#F6F4F8 100%);
+#stage{width:var(--sw,1600px);transform-origin:top left}
+.slide{width:var(--sw,1600px);min-height:900px;background:linear-gradient(160deg,#FFF6EF 0%,#FAF7F4 45%,#F6F4F8 100%);
   padding:36px 48px 30px;display:flex;flex-direction:column;gap:18px;font-family:'Sarabun',sans-serif}
 .s-head{display:flex;align-items:flex-start;justify-content:space-between}
 .s-kicker{font-size:15px;font-weight:600;color:var(--or);letter-spacing:.02em}
@@ -457,10 +457,30 @@ function drawChart(S){
 function fit(){
   const wrap=document.getElementById('stageWrap'), st=document.getElementById('stage');
   const pres=document.body.classList.contains('present');
-  let s;
-  if(pres) s=Math.min(window.innerWidth/1600, window.innerHeight/st.offsetHeight);   // โหมดพรีเซนต์: ทั้งหน้าพอดีจอ
-  else s=(document.getElementById('viewport').clientWidth-20)/1600;                   // ปกติ: เต็มความกว้าง เลื่อนลงดูได้
-  st.style.transform=`scale(${s})`; wrap.style.width=1600*s+'px'; wrap.style.height=st.offsetHeight*s+'px';
+  const sl=document.getElementById('slide');
+  let s, W=1600;
+  if(pres){
+    // โหมดพรีเซนต์: ขยายความกว้างสไลด์ให้ตรงสัดส่วนจอ แล้วย่อให้พอดีทั้งสองแกน (ไม่เหลือขอบดำ)
+    const vw=window.innerWidth, vh=window.innerHeight;
+    if(sl) sl.style.minHeight='0';
+    s=vh/st.offsetHeight;
+    for(let i=0;i<4;i++){
+      W=Math.max(1600, Math.round(vw/s));
+      document.documentElement.style.setProperty('--sw',W+'px');
+      const ns=vh/st.offsetHeight;
+      if(Math.abs(ns-s)<0.001){ s=ns; break; }
+      s=ns;
+    }
+    W=Math.max(1600, Math.round(vw/s));
+    document.documentElement.style.setProperty('--sw',W+'px');
+    if(sl) sl.style.minHeight=Math.ceil(vh/s)+'px';           // เนื้อหาสั้นกว่าจอ → ยืดพื้นหลังให้เต็ม
+    s=Math.min(vw/W, vh/st.offsetHeight);
+  } else {
+    document.documentElement.style.setProperty('--sw','1600px');
+    if(sl) sl.style.minHeight='';
+    s=(document.getElementById('viewport').clientWidth-20)/1600;                     // ปกติ: เต็มความกว้าง เลื่อนลงดูได้
+  }
+  st.style.transform=`scale(${s})`; wrap.style.width=W*s+'px'; wrap.style.height=st.offsetHeight*s+'px';
   const n=document.getElementById('pNum'); if(n) n.textContent=`${state.slide+1} / ${SLIDES.length}`;
 }
 /* ================= UI ================= */
