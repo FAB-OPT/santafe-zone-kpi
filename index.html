@@ -55,6 +55,8 @@ select,.btn{font:inherit;font-size:13px;border:1px solid var(--line);background:
 .c-val small{font-size:16px;font-weight:600;color:var(--ink2);margin-left:4px}
 .c-sub{display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--ink2)}
 .c-sub div{display:flex;align-items:center;gap:6px}
+.c-sub .sv{font-size:16px;font-weight:800;color:var(--ink);letter-spacing:.01em}
+.card.dark .c-sub .sv{color:#fff}
 .card.dark{background:#1E2230;color:#fff}
 .card.dark .c-lab,.card.dark .c-sub,.card.dark .c-val small{color:#C9CDD8}
 .b{display:inline-block;font-weight:700;font-size:12.5px;padding:2px 8px;border-radius:999px;white-space:nowrap}
@@ -431,6 +433,8 @@ function pptTxt(a,b){ if(a==null||b==null) return '—'; const r=(a-b)*100; retu
 
 /* ================= วาดหน้า ================= */
 let chart = null, chart2 = null;
+/* ตัวเลขท้ายป้าย (เช่น 'Budget ฿13.47M') ทำให้เด่นกว่าชื่อ */
+const hiNum = t => String(t).replace(/^(.*\S)\s+([−-]?฿?[\d,]+(?:\.\d+)?[MK%]?)$/,'$1 <b class="sv">$2</b>');
 function cardHTML(c){
   if(c.mix){
     const tot=c.mix.reduce((s,x)=>s+(x[1]||0),0)||1;
@@ -440,7 +444,7 @@ function cardHTML(c){
   }
   return `<div class="card ${c.dark?'dark':''}"><div class="c-lab">${c.lab}</div>
     <div class="c-val">${c.val}${c.unit?`<small>${c.unit}</small>`:''}</div>
-    <div class="c-sub">${(c.sub||[]).map(s=>`<div>${s[0]} ${s[1]?'<span style="margin-left:auto">'+s[1]+'</span>':''}</div>`).join('')}</div></div>`;
+    <div class="c-sub">${(c.sub||[]).map(s=>`<div>${hiNum(s[0])} ${s[1]?'<span style="margin-left:auto">'+s[1]+'</span>':''}</div>`).join('')}</div></div>`;
 }
 function tableRows(){
   const m=state.month;
