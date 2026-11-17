@@ -348,7 +348,7 @@ function bDiff(a,b,fmt,inverse=false){
 const SLIDES = [
  { key:'Sales', title:'Sales', th:'ยอดขาย',
    cards:o=>[
-    {lab:'Sales 2026', val:M(o.sales), dark:true, sub:[['vs Budget (%)',bPct(o.sales,o.salesBud)],['YoY (%)',bPct(o.ss.sales,o.salesLY)]]},
+    {lab:'Sales 2026', val:M(o.sales), dark:true, sub:[['Budget '+M(o.salesBud),bPct(o.sales,o.salesBud)],['Sales 2025 '+M(o.salesLY),bPct(o.ss.sales,o.salesLY)]]},
     {lab:'Budget 2026', val:M(o.salesBud), sub:[['2026 vs Budget (฿)',bDiff(o.sales,o.salesBud,M)]]},
     {lab:'Sales 2025', val:M(o.salesLY), sub:[['2026 vs 2025 (฿)',bDiff(o.ss.sales,o.salesLY,M)]]},
     {lab:'Break-even sales', val:M(o.be), sub:[['Sales vs Break-even (฿)',bDiff(o.salesBE,o.be,M)]]},
@@ -365,8 +365,8 @@ const SLIDES = [
    }},
  { key:'Traffic', title:'Transaction · Customer · Ticket', th:'จำนวนบิล ลูกค้า และยอดต่อบิล',
    cards:o=>[
-    {lab:'Transaction', val:nf(o.trans), unit:'บิล', dark:true, sub:[['A vs P (%)',bPct(o.trans,o.transPlan)],['YoY (%)',bPct(o.ss.trans,o.transLY)]]},
-    {lab:'Customer', val:nf(o.cust), unit:'คน', sub:[['A vs P (%)',bPct(o.cust,o.custPlan)],['YoY (%)',bPct(o.ss.cust,o.custLY)]]},
+    {lab:'Transaction', val:nf(o.trans), unit:'บิล', dark:true, sub:[['Plan '+nf(o.transPlan),bPct(o.trans,o.transPlan)],['Transaction 2025 '+nf(o.transLY),bPct(o.ss.trans,o.transLY)]]},
+    {lab:'Customer', val:nf(o.cust), unit:'คน', sub:[['Plan '+nf(o.custPlan),bPct(o.cust,o.custPlan)],['Customer 2025 '+nf(o.custLY),bPct(o.ss.cust,o.custLY)]]},
     {lab:'per tick. 2026', val:'฿'+nf(o.ticket), sub:[['per tick. 2025 ฿'+nf(o.ticketLY),bPct(o.ticket,o.ticketLY)]]},
     {lab:'per cust. 2026', val:'฿'+nf(o.pc), sub:[['per customer 2025 ฿'+nf(o.pcLY),bPct(o.pc,o.pcLY)]]},
     {lab:'ลูกค้าเฉลี่ยต่อบิล', val:nf(o.cpb,2), unit:'คน', sub:[['ปีก่อน '+nf(o.custLY&&o.transLY?o.custLY/o.transLY:null,2),'']]}
@@ -407,11 +407,11 @@ const SLIDES = [
    }},
  { key:'Operating-Profit', title:'Operating Profit', th:'กำไรจากการดำเนินงาน (EBITDA)',
    cards:o=>[
-    {lab:'Ebitda 2026', val:M(o.ebitda), dark:true, sub:[['vs Budget (%)',bPct(o.ebitda,o.ebitdaBud)],['YoY (%)',bPct(o.ss.ebitda,o.ebitdaLY)]]},
+    {lab:'Ebitda 2026', val:M(o.ebitda), dark:true, sub:[['Budget '+M(o.ebitdaBud),bPct(o.ebitda,o.ebitdaBud)],['Ebitda 2025 '+M(o.ebitdaLY),bPct(o.ss.ebitda,o.ebitdaLY)]]},
     {lab:'Budget 2026', val:M(o.ebitdaBud), sub:[['2026 vs Budget (฿)',bDiff(o.ebitda,o.ebitdaBud,M)]]},
     {lab:'Ebitda 2025', val:M(o.ebitdaLY), sub:[['2026 vs 2025 (฿)',bDiff(o.ss.ebitda,o.ebitdaLY,M)]]},
     {lab:'Ebitda % of Sales', val:P(o.margin), sub:[['Budget (%) '+P(o.ebitdaBud&&o.salesBud?o.ebitdaBud/o.salesBud:null),bPpt(o.margin,o.ebitdaBud&&o.salesBud?o.ebitdaBud/o.salesBud:null)]]},
-    {lab:'Sales 2026', val:M(o.sales), sub:[['vs Budget (%)',bPct(o.sales,o.salesBud)]]}
+    {lab:'Sales 2026', val:M(o.sales), sub:[['Budget '+M(o.salesBud),bPct(o.sales,o.salesBud)]]}
    ],
    chart:{title:'EBITDA รายเดือน', unit:'บาท', lines:[['ebitda','Ebitda 2026','#F66B21',false],['ebitdaBud','Budget 2026','#0EA5E9',true],['ebitdaLY','Ebitda 2025','#94A3B8',true]], fmt:M, axis:MA},
    cols:[['Ebitda 2026',o=>M(o.ebitda),o=>o.ebitda],['Budget 2026',o=>M(o.ebitdaBud)],['2026 vs Budget (฿)',o=>bDiff(o.ebitda,o.ebitdaBud,M)],['Ebitda 2025',o=>M(o.ebitdaLY)],['2026 vs 2025 (฿)',o=>bDiff(o.ss.ebitda,o.ebitdaLY,M)],['Ebitda % of Sales',o=>P(o.margin)]],
