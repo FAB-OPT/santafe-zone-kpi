@@ -516,9 +516,16 @@ function drawOne(C,id,slot){
   const selPlugin={id:'sel',
     beforeDatasetsDraw(c){ if(state.ytd) return; const x=c.scales.x.getPixelForValue(m), w=c.scales.x.width/12, a=c.chartArea, ctx=c.ctx;
       ctx.save(); ctx.fillStyle='rgba(246,107,33,.08)'; ctx.fillRect(x-w/2,a.top,w,a.bottom-a.top); ctx.restore(); },
-    afterDatasetsDraw(c){ const ctx=c.ctx; ctx.save(); ctx.font='700 13px "Sarabun"'; ctx.textAlign='center';
+    afterDatasetsDraw(c){ const ctx=c.ctx; ctx.save(); ctx.font='700 13px "Sarabun"'; ctx.textAlign='center'; ctx.lineJoin='round';
+      /* ป้ายค่าของเดือนที่เลือก: เรียงจากบนลงล่าง ถ้าชนป้ายอื่นให้ย้ายขึ้น/ลง (ห่างอย่างน้อย 19px) + ขอบขาวให้อ่านชัดบนเส้น */
+      const items=[];
       c.data.datasets.forEach((ds,i)=>{ if(ds.borderDash.length) return; const p=c.getDatasetMeta(i).data[m]; const v=ds.data[m]; if(!p||v==null) return;
-        const r=ds.yAxisID==='y2'; ctx.fillStyle=ds.borderColor; ctx.fillText((r?(C.fmt2||C.fmt):C.fmt)(v),p.x,p.y+(r?24:-12)); }); ctx.restore(); }};
+        items.push({p,txt:(ds.yAxisID==='y2'?(C.fmt2||C.fmt):C.fmt)(v),color:ds.borderColor}); });
+      items.sort((x,y)=>x.p.y-y.p.y);
+      const placed=[], H=19, marks=items.map(it=>it.p.y), free=y=>placed.every(q=>Math.abs(q-y)>=H) && marks.every(my=>Math.abs((y-5)-my)>=12);   // ไม่ทับป้ายอื่น และไม่ทับจุดของเส้นใดเลย
+      items.forEach(it=>{ const up=it.p.y-12, dn=it.p.y+22, cands=[up,dn,up-H,dn+H,up-2*H,dn+2*H,up-3*H,dn+3*H]; const y=cands.find(free); const yy=y==null?up:y; placed.push(yy);
+        ctx.strokeStyle='rgba(255,255,255,.92)'; ctx.lineWidth=4; ctx.strokeText(it.txt,it.p.x,yy); ctx.fillStyle=it.color; ctx.fillText(it.txt,it.p.x,yy); });
+      ctx.restore(); }};
   const inst=new Chart(cv,{type:'line',data:{labels:MONTHS,datasets},plugins:[selPlugin],
     options:{responsive:false,animation:false,devicePixelRatio:3,maintainAspectRatio:false,
       layout:{padding:{top:24,right:16,bottom:4}},
