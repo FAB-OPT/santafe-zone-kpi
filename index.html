@@ -282,21 +282,24 @@ const WEIGHTED = ['cos','cosBud','colBud','dine','deli','take','waste'];  // ถ
 const AVGS = ['cem','oss','sda','csat','nps'];
 /* รวมค่าของสาขา × เดือน ที่เลือก */
 function calc(blist, months){
-  const o = {}; SUMS.forEach(k=>o[k]=null);
+  const o = {}; SUMS.forEach(k=>o[k]=null); o.salesBE=null;
   const w = {}; WEIGHTED.forEach(k=>w[k]=[0,0]);
   const a = {}; AVGS.forEach(k=>a[k]=[]);
   // ยอดปีนี้เฉพาะเดือนที่ปีก่อนมีข้อมูล (ใช้เทียบ YoY ให้แฟร์กับสาขาที่เพิ่งเปิดปีก่อน)
   const LYP={sales:'salesLY',trans:'transLY',cust:'custLY',ebitda:'ebitdaLY',colB:'colBLY'}; o.ss={}; const LYK=new Set(Object.values(LYP));
   for(const b of blist) for(const m of months){
     const V = b.v;
-    // เดือนที่ปีก่อนยังไม่เปิดเต็มเดือน (ยอดปีก่อน < 50% ของปีนี้ เช่น เดือนที่เพิ่งเปิดสาขา) ไม่นำมาเทียบ YoY
-    const cmp = V.sales[m]==null || (V.salesLY[m]!=null && V.salesLY[m] >= .5*V.sales[m]);
+      const cmp = true;   // เทียบยอดรวมกับยอดรวมปีก่อนตามไฟล์ Excel (ไม่ตัดสาขาที่เพิ่งเปิดออกจากยอดปีนี้ ไม่งั้นยอดรวมกับ YoY ขัดกัน)
     SUMS.forEach(k=>{ const x=V[k][m]; if(x==null) return; if(!cmp && LYK.has(k)) return; o[k]=(o[k]||0)+x; });
+    if(V.be[m]) o.salesBE=(o.salesBE||0)+(V.sales[m]||0);   // ยอดขายเฉพาะสาขา/เดือนที่มี BE (กัน vs BE เพี้ยนเมื่อบางสาขาไม่ได้ใส่ BE)
     if(cmp) for(const [k,ly] of Object.entries(LYP)){ if(V[k][m]!=null && V[ly][m]!=null) o.ss[k]=(o.ss[k]||0)+V[k][m]; }
     const wt = V.sales[m] || V.salesBud[m] || 0;
     WEIGHTED.forEach(k=>{ const x=V[k][m]; if(x!=null && wt){ w[k][0]+=x*wt; w[k][1]+=wt; } });
     AVGS.forEach(k=>{ const x=V[k][m]; if(x!=null) a[k].push(x); });
   }
+  /* YoY = ยอดรวมปีนี้ ÷ ยอดรวมปีก่อน (ตรงกับไฟล์) · สาขา/ช่วงที่ปีก่อนมียอดน้อยกว่าครึ่งของปีนี้ (เปิดใหม่) เทียบไม่ได้ → ไม่โชว์ % (กันขึ้นเป็นหมื่น %) */
+  const okLY = o.sales!=null && o.salesLY!=null && o.salesLY>=.5*o.sales;
+  o.ss = okLY ? {sales:o.sales,trans:o.trans,cust:o.cust,ebitda:o.ebitda,colB:o.colB} : {sales:null,trans:null,cust:null,ebitda:null,colB:null};
   // พนักงานเป็นจำนวนคน ไม่ใช่ยอดสะสม → ช่วงหลายเดือนให้เฉลี่ยต่อเดือน
   ['staff','staffPlan'].forEach(k=>{ const per=months.map(m=>blist.reduce((s,b)=>s+(b.v[k][m]||0),0)).filter(x=>x>0);
     o[k]= per.length ? per.reduce((s,x)=>s+x,0)/per.length : null; });
@@ -306,7 +309,7 @@ function calc(blist, months){
   o.ticket=d(o.sales,o.trans); o.ticketLY=d(o.salesLY,o.transLY);
   o.pc=d(o.sales,o.cust); o.pcLY=d(o.salesLY,o.custLY); o.cpb=d(o.cust,o.trans);
   o.colPct=d(o.colB,o.sales); o.prodS=d(o.sales,o.hr); o.prodT=d(o.trans,o.hr);
-  o.margin=d(o.ebitda,o.sales); o.beGap=(o.sales!=null&&o.be!=null)?o.sales-o.be:null;
+  o.margin=d(o.ebitda,o.sales); o.beGap=(o.salesBE!=null&&o.be!=null)?o.salesBE-o.be:null;
   o.has = o.sales!=null;
   return o;
 }
@@ -321,6 +324,10 @@ const P = (x,d=1)=> x==null ? '—' : nf(x*100,d)+'%';
 /* badge: เปลี่ยนแปลง % (a เทียบ b) */
 function bPct(a,b,inverse=false){
   if(a==null||!b) return '<span class="b n">—</span>';
+  if(b<0){   // ฐานเทียบติดลบ (เช่น EBITDA ปีก่อนขาดทุน): % ไม่มีความหมาย บอกทิศทางเป็นคำแทน
+    const up=a>b, good=inverse?!up:up;
+    return `<span class="b ${good?'g':'r'}">${up?'▲':'▼'} ${a>=0?'พลิกเป็นกำไร':'ขาดทุน'+(up?'ลดลง':'เพิ่มขึ้น')}</span>`;
+  }
   const r=a/b-1, good = inverse ? r<=0 : r>=0;
   return `<span class="b ${good?'g':'r'}">${r>=0?'▲':'▼'} ${nf(Math.abs(r)*100,1)}%</span>`;
 }
@@ -344,11 +351,11 @@ const SLIDES = [
     {lab:'ยอดขาย', val:M(o.sales), dark:true, sub:[['vs แผน',bPct(o.sales,o.salesBud)],['vs ปีก่อน',bPct(o.ss.sales,o.salesLY)]]},
     {lab:'แผนยอดขาย', val:M(o.salesBud), sub:[['ขาด/เกินแผน',bDiff(o.sales,o.salesBud,M)]]},
     {lab:'ยอดขายปีก่อน', val:M(o.salesLY), sub:[['ผลต่าง',bDiff(o.ss.sales,o.salesLY,M)]]},
-    {lab:'Break-even sales', val:M(o.be), sub:[['ห่างจุดคุ้มทุน',bDiff(o.sales,o.be,M)]]},
+    {lab:'Break-even sales', val:M(o.be), sub:[['ห่างจุดคุ้มทุน',bDiff(o.salesBE,o.be,M)]]},
     {lab:'สัดส่วนช่องทาง', mix:[['Dine in',o.dine,'#F66B21'],['Delivery',o.deli,'#0F766E'],['Takeaway',o.take,'#7C3AED']]}
    ],
    chart:{title:'ยอดขายรายเดือน', unit:'บาท', lines:[['sales','ปีนี้','#F66B21',false],['salesBud','แผน','#0EA5E9',true],['salesLY','ปีก่อน','#94A3B8',true]], fmt:M, axis:MA},
-   cols:[['ยอดขาย',o=>M(o.sales),o=>o.sales],['แผน',o=>M(o.salesBud)],['vs แผน',o=>bPct(o.sales,o.salesBud)],['ปีก่อน',o=>M(o.salesLY)],['YoY',o=>bPct(o.ss.sales,o.salesLY)],['vs BE',o=>bDiff(o.sales,o.be,M)]],
+   cols:[['ยอดขาย',o=>M(o.sales),o=>o.sales],['แผน',o=>M(o.salesBud)],['vs แผน',o=>bPct(o.sales,o.salesBud)],['ปีก่อน',o=>M(o.salesLY)],['YoY',o=>bPct(o.ss.sales,o.salesLY)],['vs BE',o=>bDiff(o.salesBE,o.be,M)]],
    summary:(o,mo,rows)=>{
      const hit=rows.filter(r=>r.o.sales!=null&&r.o.salesBud&&r.o.sales>=r.o.salesBud).length, n=rows.filter(r=>r.o.has).length;
      const belowBE=rows.filter(r=>r.o.beGap!=null&&r.o.beGap<0).map(r=>r.code||r.label);
@@ -416,7 +423,7 @@ const SLIDES = [
    }}
 ];
 function pill(v,txt,good,warn){ if(v==null) return '—'; const c= v>=good?'g': (warn!=null&&v>=warn?'y':'r'); return `<span class="pill ${c}">${txt}</span>`; }
-function rel(a,b,what){ if(a==null||!b) return `ไม่มีข้อมูล${what}`; const r=a/b-1; return `${r>=0?'สูงกว่า':'ต่ำกว่า'}${what} <b>${nf(Math.abs(r)*100,1)}%</b>`; }
+function rel(a,b,what){ if(a==null||!b) return `ไม่มีข้อมูล${what}`; if(b<0) return `${a>b?'สูงกว่า':'ต่ำกว่า'}${what} (${what}ขาดทุน)`; const r=a/b-1; return `${r>=0?'สูงกว่า':'ต่ำกว่า'}${what} <b>${nf(Math.abs(r)*100,1)}%</b>`; }
 function pptTxt(a,b){ if(a==null||b==null) return '—'; const r=(a-b)*100; return `${r>=0?'+':'−'}${nf(Math.abs(r),1)} ppt`; }
 
 /* ================= วาดหน้า ================= */
