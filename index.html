@@ -242,6 +242,10 @@ function cellNum(ws, r, c){
   const n = parseFloat(String(cell.v).replace(/,/g,''));
   return isFinite(n) ? n : null;
 }
+/* ตัวชี้วัดแบบ % ในไฟล์ Excel บางเดือน/บางโซนกรอกเป็นเลขเต็ม (97 = 97%) บางที่เป็นสัดส่วน (0.97)
+   สัดส่วนจริงไม่เกิน 1.5 อยู่แล้ว ค่าที่เกินจึงเป็นเลขเต็ม → หาร 100 ให้เป็นหน่วยเดียวกัน (ทำซ้ำกี่ครั้งก็ผลเดิม) */
+const PCT_KEYS=['cem','oss','sda','dine','deli','take'];
+function normPct(b){ PCT_KEYS.forEach(k=>{ if(b.v[k]) b.v[k]=b.v[k].map(x=>x!=null&&Math.abs(x)>1.5?x/100:x); }); return b; }
 function parseWorkbook(wb){
   const branches = [];
   let zoneName = '', year = 2026;
@@ -264,7 +268,7 @@ function parseWorkbook(wb){
     if(!v.sales.some(x => x)) return;            // สาขาที่ไม่มียอดขายเลย ข้ามไป
     if(hidden) for(let m=0;m<12;m++) if(!v.sales[m]) for(const k in v) v[k][m]=null;   // ชีตซ่อน = สาขาที่ย้ายออกแล้ว: เดือนไม่มียอดขายคือหลังย้าย ค่าที่เหลือเป็นค่าค้าง
     const rgm = a2.split(':').slice(1).join(':').replace(/\s+/g,' ').trim();
-    branches.push({code, rgm, v});
+    branches.push(normPct({code, rgm, v}));
   });
   if(!branches.length) throw new Error('ไม่พบชีทสาขา (ชื่อชีทเป็นรหัส 4 หลัก เช่น 5003)');
   branches.sort((a,b)=>a.code.localeCompare(b.code));
@@ -579,7 +583,7 @@ const ERR={bad:'รหัสไม่ถูกต้อง',locked:'ใส่ร
 async function loadZones(){
   const g=await rpc('zk_get',{p_key:AUTH.key,p_pin:AUTH.pin,p_zone:AUTH.key==='admin'?'ALL':AUTH.key});
   if(!g.ok) throw new Error(ERR[g.error]||g.error);
-  EMBED={}; for(const [k,z] of Object.entries(g.zones||{})) if(z.branches&&z.branches.length) EMBED[k]={zoneName:z.zone_name,year:z.year,branches:z.branches,updated_at:z.updated_at,updated_by:z.updated_by};
+  EMBED={}; for(const [k,z] of Object.entries(g.zones||{})) if(z.branches&&z.branches.length) EMBED[k]={zoneName:z.zone_name,year:z.year,branches:z.branches.map(normPct),updated_at:z.updated_at,updated_by:z.updated_by};
 }
 const DATA_CTRLS=['scope','month','saveOne','saveAll','fs'];
 function showEmpty(msg){
