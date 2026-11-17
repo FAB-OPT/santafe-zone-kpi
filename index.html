@@ -120,6 +120,32 @@ body.locked .bar,body.locked #viewport{visibility:hidden}
 .adm{display:none} body.isadmin .adm{display:inline-flex}
 .admlink{margin-top:26px;background:none;border:1px dashed #D8CFC6;border-radius:12px;padding:10px 18px;color:var(--ink2);font-size:14px;cursor:pointer}
 .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#1E2230;color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;display:none;z-index:20}
+
+/* ---------- หน้าต่าง (อัพเดทข้อมูลโซน / เปลี่ยนรหัส) ---------- */
+.mdl{position:fixed;inset:0;z-index:60;background:rgba(31,41,55,.45);display:none;align-items:center;justify-content:center;padding:16px}
+.mdl.on{display:flex}
+.mcard{background:#FFFCFA;border:1px solid var(--line);border-radius:20px;width:min(540px,100%);max-height:calc(100vh - 32px);overflow:auto;padding:24px 26px 22px;box-shadow:0 24px 60px rgba(120,80,40,.22)}
+.mcard h2{margin:0;font-size:22px;font-weight:800}
+.msub{color:var(--ink2);font-size:14.5px;margin:4px 0 16px;line-height:1.5}
+.mfoot{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}
+.mfoot .btn{padding:10px 20px;font-size:15px;min-height:44px;border-radius:12px}
+.facts{display:grid;grid-template-columns:auto 1fr;gap:5px 16px;font-size:14px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:0 0 14px}
+.facts dt{color:var(--mute)} .facts dd{margin:0;font-weight:700}
+.drop{border:2px dashed #E7CDB9;border-radius:16px;background:#fff;padding:22px 16px 20px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s}
+.drop:hover,.drop.over,.drop:focus-visible{border-color:var(--or);background:var(--or-soft);outline:none}
+.drop b{display:block;font-size:16px}
+.drop small{display:block;color:var(--ink2);margin-top:4px;font-size:13px}
+.drop .btn{margin-top:12px;min-height:44px;padding:10px 22px;font-size:15px;border-radius:12px}
+.pv{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin-top:8px;font-size:14px;line-height:1.5}
+.pv b{display:block;font-size:15px} .pv span{color:var(--ink2)}
+.pv.ok{border-color:#BBF7D0;background:#F7FEF9} .pv.bad{border-color:#FECACA;background:#FFF8F8}
+.pv.ok b:before{content:"✓ ";color:var(--good)} .pv.bad b:before{content:"✕ ";color:var(--bad)}
+.fld label{display:block;font-size:13px;font-weight:700;color:var(--ink2);margin:12px 0 5px}
+.fld input,.fld select{width:100%;font:inherit;font-size:16px;padding:11px 12px;border:2px solid var(--line);border-radius:12px;background:#fff;color:var(--ink)}
+.fld input.pin{font-size:24px;letter-spacing:.35em;text-align:center}
+.fld input:focus,.fld select:focus{outline:none;border-color:var(--or)}
+.mmsg{min-height:20px;font-size:13.5px;margin-top:10px} .mmsg.err{color:var(--bad)} .mmsg.ok{color:var(--good);font-weight:700}
+@media(max-width:560px){.mdl{align-items:flex-end;padding:0}.mcard{border-radius:20px 20px 0 0;width:100%;max-height:92vh}.mfoot .btn{flex:1}}
 </style>
 </head>
 <body class="locked">
@@ -131,8 +157,7 @@ body.locked .bar,body.locked #viewport{visibility:hidden}
   <select id="zoneSel" class="adm" title="โซน"></select>
   <select id="scope" title="ขอบเขต"></select>
   <select id="month" title="เดือน"></select>
-  <label class="btn" for="file" title="อัพไฟล์ KPI ของโซนคุณ แทนที่ข้อมูลเดิมทั้งโซน">อัพเดทข้อมูลโซน (Excel)</label>
-  <input type="file" id="file" accept=".xlsx,.xlsm,.xls" multiple="" hidden="">
+  <button class="btn pri" id="upBtn" title="อัพไฟล์ KPI ของโซนคุณ แทนที่ข้อมูลเดิมทั้งโซน">⬆ อัพเดทข้อมูลโซน</button>
   <button class="btn" id="chPin">เปลี่ยนรหัส</button>
   <button class="btn" id="switchAm">เปลี่ยนโซน</button>
   <button class="btn" id="fs">▶ โหมดพรีเซนต์</button>
@@ -153,6 +178,29 @@ body.locked .bar,body.locked #viewport{visibility:hidden}
   <div class="pinerr" id="pinErr"></div>
   <div style="display:flex;gap:8px;justify-content:center;margin-top:8px">
     <button class="btn" id="pinCancel">ยกเลิก</button><button class="btn pri" id="pinOk">เข้าดู</button></div>
+</div></div>
+<div class="mdl" id="upBox"><div class="mcard" role="dialog" aria-labelledby="upTitle">
+  <h2 id="upTitle">อัพเดทข้อมูลโซน</h2>
+  <div class="msub" id="upSub"></div>
+  <dl class="facts" id="upFacts"></dl>
+  <div class="drop" id="upDrop" tabindex="0" role="button" aria-label="เลือกไฟล์ Excel">
+    <b>ลากไฟล์ Excel มาวางที่นี่</b>
+    <small>ไฟล์ KPI เดือนล่าสุด (.xlsx) · อัพแล้วจะแทนที่ข้อมูลเดิมของโซนทั้งโซน</small>
+    <button class="btn pri" type="button" id="upPick">เลือกไฟล์ Excel</button>
+  </div>
+  <input type="file" id="file" accept=".xlsx,.xlsm,.xls" multiple hidden>
+  <div id="upPrev"></div>
+  <div class="mmsg" id="upMsg"></div>
+  <div class="mfoot"><button class="btn" id="upCancel">ปิด</button><button class="btn pri" id="upGo" disabled>ยืนยันอัพเดท</button></div>
+</div></div>
+<div class="mdl" id="pwBox"><div class="mcard" role="dialog" aria-labelledby="pwTitle" style="width:min(420px,100%)">
+  <h2 id="pwTitle">เปลี่ยนรหัส</h2>
+  <div class="msub">รหัสตัวเลข 6 หลัก ใช้ตอนเข้าดูข้อมูลโซน · อย่าใช้เลขซ้ำกับรหัสอื่น เช่น วันเกิดหรือ 123456</div>
+  <div class="fld" id="pwWho" style="display:none"><label for="pwTarget">เปลี่ยนรหัสของ</label><select id="pwTarget"></select></div>
+  <div class="fld"><label for="pwNew">รหัสใหม่</label><input class="pin" id="pwNew" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password"></div>
+  <div class="fld"><label for="pwNew2">พิมพ์รหัสใหม่อีกครั้ง</label><input class="pin" id="pwNew2" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password"></div>
+  <div class="mmsg" id="pwMsg"></div>
+  <div class="mfoot"><button class="btn" id="pwCancel">ยกเลิก</button><button class="btn pri" id="pwGo">บันทึกรหัสใหม่</button></div>
 </div></div>
 <div id="viewport"><div id="stageWrap"><div id="stage"></div></div></div>
 <div class="pnav"><span class="pt">Santa Fe · Zone KPI · <span id="pTitle"></span></span><button id="pPrev">‹ ก่อนหน้า</button><span id="pNum">1 / 5</span><button id="pNext">ถัดไป ›</button><button id="pExit">ออก (Esc)</button></div>
@@ -531,7 +579,7 @@ const ERR={bad:'รหัสไม่ถูกต้อง',locked:'ใส่ร
 async function loadZones(){
   const g=await rpc('zk_get',{p_key:AUTH.key,p_pin:AUTH.pin,p_zone:AUTH.key==='admin'?'ALL':AUTH.key});
   if(!g.ok) throw new Error(ERR[g.error]||g.error);
-  EMBED={}; for(const [k,z] of Object.entries(g.zones||{})) if(z.branches&&z.branches.length) EMBED[k]={zoneName:z.zone_name,year:z.year,branches:z.branches};
+  EMBED={}; for(const [k,z] of Object.entries(g.zones||{})) if(z.branches&&z.branches.length) EMBED[k]={zoneName:z.zone_name,year:z.year,branches:z.branches,updated_at:z.updated_at,updated_by:z.updated_by};
 }
 const DATA_CTRLS=['scope','month','saveOne','saveAll','fs'];
 function showEmpty(msg){
@@ -621,49 +669,119 @@ document.getElementById('switchAm').addEventListener('click',()=>{
   document.body.classList.add('locked'); document.getElementById('landing').style.display='flex'; loadList();
 });
 
-/* ---------- นำเข้า Excel: ใครของมัน — อัพได้เฉพาะโซนตัวเอง (แอดมินอัพได้ทุกโซน) · แต่ละไฟล์ = หนึ่งโซน แทนที่ทั้งโซนตามไฟล์ ---------- */
+/* ---------- อัพเดทข้อมูลโซน: ใครของมัน — เลือกไฟล์ → ดูตัวอย่าง → ยืนยัน (แทนที่ทั้งโซน) · แอดมินอัพได้ทุกโซน ---------- */
 document.getElementById('zoneSel').addEventListener('change',()=>openZone());
-document.getElementById('file').addEventListener('change',async e=>{
-  const files=[...e.target.files]; e.target.value=''; if(!files.length||!AM||!AUTH) return;
-  toast('กำลังอ่านไฟล์…',60000);
-  const msgs=[], changed={}, cands=AM.admin?AMS:AMS.filter(a=>a.key===AM.key);
-  for(const f of files){
-    try{
-      const d=parseWorkbook(XLSX.read(await f.arrayBuffer(),{type:'array'}));
-      let best=null, bestN=0;
-      for(const a of cands){ const n=d.branches.filter(b=>a.codes.includes(b.code)).length; if(n>bestN){ best=a; bestN=n; } }
-      if(!best){ msgs.push(`${f.name}: ${AM.admin?'ไม่รู้ว่าเป็นไฟล์ของโซนไหน':'ไม่ใช่ไฟล์ของโซนคุณ (ไม่มีรหัสสาขาของโซนที่ตรงกัน)'}`); continue; }
-      const z=changed[best.key]||(changed[best.key]={zoneName:best.nick+' '+best.name, year:d.year, branches:[]});
-      d.branches.forEach(nb=>{ const t=z.branches.find(x=>x.code===nb.code);
-        if(!t) z.branches.push(nb); else { for(const k in nb.v) nb.v[k].forEach((x,m)=>{ if(x!=null) t.v[k][m]=x; }); if(nb.rgm) t.rgm=nb.rgm; } });
-      z.branches.sort((x,y)=>x.code.localeCompare(y.code));
-    }catch(err){ msgs.push(`${f.name}: อ่านไม่ได้ (${err.message})`); }
+(function(){
+  const g=id=>document.getElementById(id);
+  const fmtDT=iso=>iso?new Date(iso).toLocaleString('th-TH',{day:'numeric',month:'short',year:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
+  const who=k=>k==='admin'?'Admin':((AMS.find(a=>a.key===k)||{}).nick||k||'—');
+  const lastOf=z=>{ let l=0; for(let m=0;m<12;m++) if(z.branches.some(b=>b.v.sales[m])) l=m; return l; };
+  const mm=v=>v==null?'—':(v/1e6).toFixed(2)+'M';
+  const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  let staged=null;
+  const open=id=>{ g(id).classList.add('on'); }, close=id=>{ g(id).classList.remove('on'); };
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ close('upBox'); close('pwBox'); } });
+  ['upBox','pwBox'].forEach(id=>g(id).addEventListener('mousedown',e=>{ if(e.target===g(id)) close(id); }));
+
+  /* ----- อัพเดทข้อมูลโซน ----- */
+  function resetUp(){
+    staged=null; g('upPrev').innerHTML=''; g('upMsg').textContent=''; g('upMsg').className='mmsg'; g('upGo').disabled=true; g('upGo').textContent='ยืนยันอัพเดท'; g('file').value='';
+    g('upDrop').style.display='';
+    const rows=(AM.admin?AMS:[AM]).map(a=>{ const z=EMBED[a.key];
+      return z?[a.nick, `${z.branches.length} สาขา · ข้อมูลถึง ${MONTHS_FULL[lastOf(z)]} ${z.year} · อัพเดท ${fmtDT(z.updated_at)} โดย ${who(z.updated_by)}`]:[a.nick,'ยังไม่มีข้อมูล']; });
+    g('upFacts').innerHTML=rows.map(r=>`<dt>${esc(r[0])}</dt><dd>${esc(r[1])}</dd>`).join('');
+    g('upSub').textContent=AM.admin?'แอดมิน: เลือกได้หลายไฟล์ ระบบจับคู่ไฟล์กับโซนจากรหัสสาขาให้เอง':`โซน ${AM.nick} ${AM.name} · อัพได้เฉพาะไฟล์ของโซนนี้`;
   }
-  for(const [k,z] of Object.entries(changed)){
-    const a=AMS.find(x=>x.key===k);
-    try{
-      toast(`กำลังบันทึก ${a.nick}…`,60000);
-      const r=await rpc('zk_put',{p_key:AUTH.key,p_pin:AUTH.pin,p_zone:k,p_name:z.zoneName,p_year:z.year,p_branches:z.branches,p_active:activeN(z)});
-      if(!r.ok) throw new Error(ERR[r.error]||r.error);
-      EMBED[k]=z; a.has_data=true; a.active_n=activeN(z);
-      msgs.push(`${a.nick}: อัพเดทแล้ว (${z.branches.length} สาขา)`);
-    }catch(err){ msgs.push(`${a.nick}: บันทึกไม่สำเร็จ — ${err.message}`); }
+  g('upBtn').addEventListener('click',()=>{ if(!AM||!AUTH) return; resetUp(); open('upBox'); });
+  g('upCancel').addEventListener('click',()=>close('upBox'));
+  g('upPick').addEventListener('click',e=>{ e.stopPropagation(); g('file').click(); });
+  g('upDrop').addEventListener('click',()=>g('file').click());
+  g('upDrop').addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); g('file').click(); } });
+  ['dragenter','dragover'].forEach(t=>g('upDrop').addEventListener(t,e=>{ e.preventDefault(); g('upDrop').classList.add('over'); }));
+  ['dragleave','drop'].forEach(t=>g('upDrop').addEventListener(t,e=>{ e.preventDefault(); g('upDrop').classList.remove('over'); }));
+  g('upDrop').addEventListener('drop',e=>stage([...e.dataTransfer.files]));
+  g('file').addEventListener('change',e=>stage([...e.target.files]));
+
+  async function stage(files){
+    files=files.filter(f=>/\.xlsx?m?$/i.test(f.name)); if(!files.length) return;
+    g('upMsg').className='mmsg'; g('upMsg').textContent='กำลังอ่านไฟล์…'; g('upGo').disabled=true;
+    const cands=AM.admin?AMS:AMS.filter(a=>a.key===AM.key), changed={}, notes=[];
+    for(const f of files){
+      try{
+        const d=parseWorkbook(XLSX.read(await f.arrayBuffer(),{type:'array'}));
+        let best=null, bestN=0;
+        for(const a of cands){ const n=d.branches.filter(b=>a.codes.includes(b.code)).length; if(n>bestN){ best=a; bestN=n; } }
+        if(!best){ notes.push([f.name, AM.admin?'ไม่รู้ว่าเป็นไฟล์ของโซนไหน (ไม่มีรหัสสาขาตรงกับรายชื่อโซน)':'ไม่ใช่ไฟล์ของโซนคุณ (ไม่มีรหัสสาขาของโซนที่ตรงกัน)']); continue; }
+        const z=changed[best.key]||(changed[best.key]={zoneName:best.nick+' '+best.name,year:d.year,branches:[],files:[]});
+        z.files.push(f.name);
+        d.branches.forEach(nb=>{ const t=z.branches.find(x=>x.code===nb.code);
+          if(!t) z.branches.push(nb); else { for(const k in nb.v) nb.v[k].forEach((x,m)=>{ if(x!=null) t.v[k][m]=x; }); if(nb.rgm) t.rgm=nb.rgm; } });
+        z.branches.sort((x,y)=>x.code.localeCompare(y.code));
+      }catch(err){ notes.push([f.name,'อ่านไฟล์ไม่ได้ — '+err.message]); }
+    }
+    staged=changed;
+    const okCards=Object.entries(changed).map(([k,z])=>{
+      const a=AMS.find(x=>x.key===k), old=EMBED[k], l=lastOf(z), sales=z.branches.reduce((s,b)=>s+(b.v.sales[l]||0),0);
+      return `<div class="pv ok"><b>${esc(a.nick)} · ${z.branches.length} สาขา · ข้อมูลถึง ${MONTHS_FULL[l]} ${z.year}</b>
+        <span>ยอดขาย${MONTHS_FULL[l]}รวม ${mm(sales)} · ${old?`จะแทนที่ข้อมูลเดิม (${old.branches.length} สาขา ถึง ${MONTHS_FULL[lastOf(old)]})`:'โซนนี้ยังไม่มีข้อมูล'}<br>จากไฟล์ ${esc(z.files.join(', '))}</span></div>`; });
+    const badCards=notes.map(n=>`<div class="pv bad"><b>${esc(n[0])}</b><span>${esc(n[1])}</span></div>`);
+    g('upPrev').innerHTML=okCards.concat(badCards).join('');
+    g('upMsg').textContent='';
+    g('upGo').disabled=!Object.keys(changed).length;
   }
-  openZone();
-  toast(msgs.join(' · ')||'ไม่พบข้อมูล',9000);
-});
-document.getElementById('chPin').addEventListener('click',async()=>{
-  if(!AUTH) return;
-  let target='';
-  if(AM.admin){ const t=prompt('ตั้งรหัสใหม่ให้โซนไหน?\nพิมพ์ nop / pik / rut / jeab / em / yee\nหรือเว้นว่าง = เปลี่ยนรหัส Admin เอง'); if(t===null) return; target=t.trim(); }
-  const n=prompt('รหัสใหม่ (ตัวเลข 6 หลัก)'); if(n===null) return;
-  try{
-    const r=await rpc('zk_set_pin',{p_key:AUTH.key,p_pin:AUTH.pin,p_target:target,p_new:n.trim()});
-    if(!r.ok) return toast(ERR[r.error]||r.error,4000);
-    if(!target||target===AUTH.key){ AUTH.pin=n.trim(); try{ sessionStorage.setItem('zoneKpiAuth',JSON.stringify(AUTH)); }catch(e){} }
-    toast('เปลี่ยนรหัสแล้ว',3000);
-  }catch(e){ toast('เชื่อมต่อไม่ได้: '+(e.message||e),4000); }
-});
+  g('upGo').addEventListener('click',async()=>{
+    if(!staged||!AUTH) return;
+    const btn=g('upGo'); btn.disabled=true; g('upCancel').disabled=true;
+    const ok=[], bad=[];
+    for(const [k,z] of Object.entries(staged)){
+      const a=AMS.find(x=>x.key===k);
+      btn.textContent=`กำลังบันทึก ${a.nick}…`;
+      try{
+        const r=await rpc('zk_put',{p_key:AUTH.key,p_pin:AUTH.pin,p_zone:k,p_name:z.zoneName,p_year:z.year,p_branches:z.branches,p_active:activeN(z)});
+        if(!r.ok) throw new Error(ERR[r.error]||r.error);
+        EMBED[k]={zoneName:z.zoneName,year:z.year,branches:z.branches,updated_at:new Date().toISOString(),updated_by:AUTH.key};
+        a.has_data=true; a.active_n=activeN(z); ok.push(a.nick);
+      }catch(err){ bad.push(`${a.nick}: ${err.message}`); }
+    }
+    g('upCancel').disabled=false; btn.textContent='ยืนยันอัพเดท';
+    if(ok.length) openZone();
+    staged=null; g('upDrop').style.display='none'; btn.disabled=true;
+    const m=g('upMsg');
+    if(bad.length){ m.className='mmsg err'; m.textContent='บันทึกไม่สำเร็จ — '+bad.join(' · ')+(ok.length?` (สำเร็จ: ${ok.join(', ')})`:''); g('upDrop').style.display=''; }
+    else { m.className='mmsg ok'; m.textContent=`✓ อัพเดทเรียบร้อย: ${ok.join(', ')} — ข้อมูลในหน้าเปลี่ยนแล้ว`; g('upPrev').innerHTML=''; g('upCancel').textContent='เสร็จสิ้น'; }
+  });
+  g('upBtn').addEventListener('click',()=>{ g('upCancel').textContent='ปิด'; });
+
+  /* ----- เปลี่ยนรหัส ----- */
+  g('chPin').addEventListener('click',()=>{
+    if(!AM||!AUTH) return;
+    g('pwNew').value=''; g('pwNew2').value=''; g('pwMsg').textContent=''; g('pwMsg').className='mmsg';
+    g('pwWho').style.display=AM.admin?'':'none';
+    if(AM.admin) g('pwTarget').innerHTML='<option value="">Admin (รหัสของคุณเอง)</option>'+AMS.map(a=>`<option value="${a.key}">${esc(a.nick)} ${esc(a.name)}</option>`).join('');
+    open('pwBox'); setTimeout(()=>g(AM.admin?'pwTarget':'pwNew').focus(),50);
+  });
+  g('pwCancel').addEventListener('click',()=>close('pwBox'));
+  ['pwNew','pwNew2'].forEach(id=>{ g(id).addEventListener('input',()=>{ g(id).value=g(id).value.replace(/\D/g,'').slice(0,6); });
+    g(id).addEventListener('keydown',e=>{ if(e.key==='Enter') g('pwGo').click(); }); });
+  g('pwGo').addEventListener('click',async()=>{
+    const m=g('pwMsg'), n=g('pwNew').value, n2=g('pwNew2').value, target=AM.admin?g('pwTarget').value:'';
+    m.className='mmsg err';
+    if(!/^\d{6}$/.test(n)){ m.textContent='รหัสต้องเป็นตัวเลข 6 หลัก'; return; }
+    if(n!==n2){ m.textContent='รหัสสองครั้งไม่ตรงกัน'; return; }
+    if(/^(\d)\1{5}$/.test(n)||n==='123456'||n==='654321'){ m.textContent='รหัสนี้เดาง่ายเกินไป เลือกเลขอื่น'; return; }
+    g('pwGo').disabled=true; m.className='mmsg'; m.textContent='กำลังบันทึก…';
+    try{
+      const r=await rpc('zk_set_pin',{p_key:AUTH.key,p_pin:AUTH.pin,p_target:target,p_new:n});
+      if(!r.ok){ m.className='mmsg err'; m.textContent=ERR[r.error]||r.error; return; }
+      if(!target||target===AUTH.key){ AUTH.pin=n; try{ sessionStorage.setItem('zoneKpiAuth',JSON.stringify(AUTH)); }catch(e){} }
+      const t=target?(AMS.find(a=>a.key===target)||{}).nick:'Admin';
+      m.className='mmsg ok'; m.textContent=`✓ เปลี่ยนรหัสของ ${t} แล้ว`;
+      g('pwNew').value=''; g('pwNew2').value='';
+      setTimeout(()=>close('pwBox'),1400);
+    }catch(e){ m.className='mmsg err'; m.textContent='เชื่อมต่อไม่ได้: '+(e.message||e); }
+    finally{ g('pwGo').disabled=false; }
+  });
+})();
 
 /* ---------- บันทึกรูป ---------- */
 let dlCap=null;
