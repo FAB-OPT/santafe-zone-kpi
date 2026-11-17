@@ -61,6 +61,7 @@ select,.btn{font:inherit;font-size:13px;border:1px solid var(--line);background:
 .b.g{background:var(--good-bg);color:var(--good)} .b.r{background:var(--bad-bg);color:var(--bad)} .b.n{background:#EEF0F3;color:#4B5563}
 .body{display:flex;flex-direction:column;gap:16px}
 .body .panel.chart{height:380px}
+.charts2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .panel{background:var(--card);border-radius:18px;padding:16px 20px;box-shadow:0 1px 2px rgba(0,0,0,.04),0 6px 20px rgba(120,80,40,.06);display:flex;flex-direction:column;min-height:0}
 .p-title{font-size:17px;font-weight:700;display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .p-title:before{content:"";width:4px;height:18px;border-radius:2px;background:var(--or)}
@@ -157,6 +158,7 @@ body.locked .bar,body.locked #viewport{visibility:hidden}
   <select id="zoneSel" class="adm" title="โซน"></select>
   <select id="scope" title="ขอบเขต"></select>
   <select id="month" title="เดือน"></select>
+  <select id="unit" title="หน่วยเงิน"><option value="M">หน่วย: ล้าน / พัน</option><option value="B">หน่วย: บาทเต็ม</option></select>
   <button class="btn pri" id="upBtn" title="อัพไฟล์ KPI ของโซนคุณ แทนที่ข้อมูลเดิมทั้งโซน">⬆ อัพเดทข้อมูลโซน</button>
   <button class="btn" id="chPin">เปลี่ยนรหัส</button>
   <button class="btn" id="switchAm">เปลี่ยนโซน</button>
@@ -230,7 +232,7 @@ const bName = c => BRANCH_NAMES[c] ? `${c} ${BRANCH_NAMES[c]}` : c;
 /* จำนวนสาขาที่เปิดอยู่จริง = มียอดขายในเดือนล่าสุดของโซน (สาขาที่ปิด/ย้ายออกแล้วยังอยู่ในตาราง แต่ไม่นับ) */
 const activeN = d => { const bs=d.branches; let last=0; for(let m=0;m<12;m++) if(bs.some(b=>b.v.sales[m])) last=m; return bs.filter(b=>b.v.sales[last]).length; };
 let DATA = null; let AM = null;          // {zoneName, year, branches:[{code,rgm,v:{key:[12]}}]}
-let state = {slide:0, scope:'ZONE', month:0, ytd:false, lastData:0};
+let state = {slide:0, scope:'ZONE', month:0, ytd:false, lastData:0, unit:(function(){ try{ return sessionStorage.getItem('zoneKpiUnit')==='B'?'B':'M'; }catch(e){ return 'M'; } })()};   // unit: M = ย่อ ฿9.94M · B = บาทเต็มจำนวน
 const period = () => state.ytd ? [...Array(state.month+1).keys()] : [state.month];
 const periodLabel = () => state.ytd ? `ม.ค.–${MONTHS[state.month]} ${DATA.year} (YTD)` : `${MONTHS_FULL[state.month]} ${DATA.year}`;
 
@@ -318,7 +320,7 @@ const series = (key) => MONTHS.map((_,m)=> calc(scopeBranches(),[m])[key]);
 
 /* ================= รูปแบบตัวเลข ================= */
 const nf = (x,d=0)=> x==null||!isFinite(x) ? '—' : x.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
-const M = x => { if(x==null) return '—'; const a=Math.abs(x), sg=x<0?'−':''; return sg+(a>=1e6 ? '฿'+nf(a/1e6,2)+'M' : a>=1e3 ? '฿'+nf(a/1e3,0)+'K' : '฿'+nf(a,0)); };
+const M = x => { if(x==null) return '—'; const a=Math.abs(x), sg=x<0?'−':''; if(state.unit==='B') return sg+'฿'+nf(a,0); return sg+(a>=1e6 ? '฿'+nf(a/1e6,2)+'M' : a>=1e3 ? '฿'+nf(a/1e3,0)+'K' : '฿'+nf(a,0)); };
 const MA = x => { const a=Math.abs(x), sg=x<0?'−':''; return sg+(a>=1e6 ? '฿'+nf(a/1e6,1)+'M' : a>=1e3 ? '฿'+nf(a/1e3,0)+'K' : '฿'+nf(a,0)); };
 const P = (x,d=1)=> x==null ? '—' : nf(x*100,d)+'%';
 /* badge: เปลี่ยนแปลง % (a เทียบ b) */
@@ -399,6 +401,7 @@ const SLIDES = [
     {lab:'CSAT / NPS', val:nf(o.csat,1), unit:'/ '+nf(o.nps,1), sub:[['CSAT · NPS (เฉลี่ย)','']]}
    ],
    chart:{title:'CEM และ CSAT รายเดือน', unit:'%', pct:true, lines:[['cem','CEM','#F66B21',false],['csatP','CSAT','#0F766E',false]], fmt:x=>P(x), axis:x=>P(x,0)},
+   chart2:{title:'NPS รายเดือน', unit:'คะแนน', lines:[['nps','NPS','#7C3AED',false]], fmt:x=>nf(x,1), axis:x=>nf(x,0)},
    cols:[['CEM',o=>pill(o.cem,P(o.cem),.99,.92)],['OSS',o=>pill(o.oss,P(o.oss),.9,.85)],['SDA',o=>pill(o.sda,P(o.sda),.9,.85)],['Complaint',o=>nf(o.cmp||0)],['VOC',o=>nf(o.voc)],['CSAT',o=>nf(o.csat,1)],['NPS',o=>nf(o.nps,1)]],
    summary:(o,mo,rows)=>{
      const low=rows.filter(r=>r.o.cem!=null&&r.o.cem<.92).map(r=>r.code||r.label);
@@ -427,7 +430,7 @@ function rel(a,b,what){ if(a==null||!b) return `ไม่มีข้อมู�
 function pptTxt(a,b){ if(a==null||b==null) return '—'; const r=(a-b)*100; return `${r>=0?'+':'−'}${nf(Math.abs(r),1)} ppt`; }
 
 /* ================= วาดหน้า ================= */
-let chart = null;
+let chart = null, chart2 = null;
 function cardHTML(c){
   if(c.mix){
     const tot=c.mix.reduce((s,x)=>s+(x[1]||0),0)||1;
@@ -455,6 +458,11 @@ function cell(c,o,rows){
   const mx=Math.max(...rows.map(r=>Math.abs(c[2](r.o)||0)))||1;
   return `<span class="cb">${c[1](o)}<i class="${v<0?'neg':''}" style="width:${Math.abs(v)/mx*100}%"></i></span>`;
 }
+function chartPanel(c,id){ return `<div class="panel chart">
+        <div class="p-title">${c.title}<span class="sub">${c.unit} · ม.ค.–ธ.ค. ${DATA.year}</span></div>
+        <div class="legend">${c.lines.map(l=>`<span><i class="${l[3]?'d':''}" style="border-color:${l[2]}"></i>${l[1]}</span>`).join('')}</div>
+        <div class="chartbox"><canvas id="${id}" width="700" height="400"></canvas></div>
+      </div>`; }
 function render(){
   const S=SLIDES[state.slide], m=state.month, b=scopeBranches();
   const o=calc(b,period());
@@ -470,11 +478,7 @@ function render(){
     </div>
     <div class="cards" style="grid-template-columns:repeat(${cards.length},1fr)">${cards.map(cardHTML).join('')}</div>
     <div class="body">
-      <div class="panel chart">
-        <div class="p-title">${S.chart.title}<span class="sub">${S.chart.unit} · ม.ค.–ธ.ค. ${DATA.year}</span></div>
-        <div class="legend">${S.chart.lines.map(l=>`<span><i class="${l[3]?'d':''}" style="border-color:${l[2]}"></i>${l[1]}</span>`).join('')}</div>
-        <div class="chartbox"><canvas id="cv" width="700" height="400"></canvas></div>
-      </div>
+      ${S.chart2?`<div class="charts2">${chartPanel(S.chart,'cv')}${chartPanel(S.chart2,'cv2')}</div>`:chartPanel(S.chart,'cv')}
       <div class="panel">
         <div class="p-title">${state.scope==='ZONE'?'รายสาขา · '+(state.ytd?'ม.ค.–'+MONTHS[m]+' (YTD)':MONTHS[m]):'รายเดือน · ม.ค.–'+MONTHS[m]}</div>
         <div style="overflow:hidden"><table>
@@ -492,10 +496,15 @@ function render(){
 }
 function drawChart(S){
   if(chart){ chart.destroy(); chart=null; }
-  const cv=document.getElementById('cv'), box=cv.parentElement;
+  if(chart2){ chart2.destroy(); chart2=null; }
+  drawOne(S.chart,'cv',0);
+  if(S.chart2) drawOne(S.chart2,'cv2',1);
+}
+function drawOne(C,id,slot){
+  const cv=document.getElementById(id), box=cv.parentElement;
   cv.width=box.clientWidth; cv.height=box.clientHeight;
   const m=state.month;
-  const datasets=S.chart.lines.map(([key,label,color,dash])=>{
+  const datasets=C.lines.map(([key,label,color,dash])=>{
     let data = key==='csatP' ? series('csat').map(x=>x==null?null:x/100) : series(key);
     if(!dash) data=data.map((x,i)=>i<=m?x:null);       // ปีนี้แสดงถึงเดือนที่เลือก
     return {label,data,borderColor:color,backgroundColor:color,borderWidth:dash?2:3,borderDash:dash?[6,5]:[],
@@ -506,14 +515,15 @@ function drawChart(S){
       ctx.save(); ctx.fillStyle='rgba(246,107,33,.08)'; ctx.fillRect(x-w/2,a.top,w,a.bottom-a.top); ctx.restore(); },
     afterDatasetsDraw(c){ const ctx=c.ctx; ctx.save(); ctx.font='700 13px "Sarabun"'; ctx.textAlign='center';
       c.data.datasets.forEach((ds,i)=>{ if(ds.borderDash.length) return; const p=c.getDatasetMeta(i).data[m]; const v=ds.data[m]; if(!p||v==null) return;
-        ctx.fillStyle=ds.borderColor; ctx.fillText(S.chart.fmt(v),p.x,p.y-12); }); ctx.restore(); }};
-  chart=new Chart(cv,{type:'line',data:{labels:MONTHS,datasets},plugins:[selPlugin],
+        ctx.fillStyle=ds.borderColor; ctx.fillText(C.fmt(v),p.x,p.y-12); }); ctx.restore(); }};
+  const inst=new Chart(cv,{type:'line',data:{labels:MONTHS,datasets},plugins:[selPlugin],
     options:{responsive:false,animation:false,devicePixelRatio:3,maintainAspectRatio:false,
       layout:{padding:{top:24,right:16,bottom:4}},
       interaction:{mode:'index',intersect:false},
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${S.chart.fmt(c.parsed.y)}`}}},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${C.fmt(c.parsed.y)}`}}},
       scales:{x:{grid:{display:false},ticks:{color:'#6B7280',font:{family:'Sarabun',size:13}}},
-        y:{grace:'8%',grid:{color:'#F1ECE7'},border:{display:false},ticks:{color:'#9CA3AF',font:{family:'Sarabun',size:12},callback:v=>(S.chart.axis||S.chart.fmt)(v)}}}}});
+        y:{grace:'8%',grid:{color:'#F1ECE7'},border:{display:false},ticks:{color:'#9CA3AF',font:{family:'Sarabun',size:12},callback:v=>(C.axis||C.fmt)(v)}}}}});
+  if(slot===0) chart=inst; else chart2=inst;
 }
 function fit(){
   const wrap=document.getElementById('stageWrap'), st=document.getElementById('stage'), vp=document.getElementById('viewport');
@@ -542,11 +552,13 @@ function buildControls(){
   const mo=document.getElementById('month');
   mo.innerHTML=`<option value="ytd">ภาพรวมปี (ม.ค.–${MONTHS[state.lastData]} ${DATA.year})</option>`+MONTHS_FULL.map((x,i)=>`<option value="${i}">${x} ${DATA.year}</option>`).join('');
   mo.value=state.ytd?'ytd':state.month;
+  document.getElementById('unit').value=state.unit;
 }
 function setSlide(i){ state.slide=(i+SLIDES.length)%SLIDES.length;
   document.getElementById('viewport').scrollTop=0;
   document.querySelectorAll('.tab').forEach((t,j)=>t.classList.toggle('on',j===state.slide)); render(); }
 document.getElementById('tabs').addEventListener('click',e=>{const t=e.target.closest('.tab'); if(t) setSlide(+t.dataset.i);});
+document.getElementById('unit').addEventListener('change',e=>{ state.unit=e.target.value==='B'?'B':'M'; try{ sessionStorage.setItem('zoneKpiUnit',state.unit); }catch(_){} render(); });
 document.getElementById('scope').addEventListener('change',e=>{state.scope=e.target.value; render();});
 document.getElementById('month').addEventListener('change',e=>{ if(e.target.value==='ytd'){state.ytd=true; state.month=state.lastData;} else {state.ytd=false; state.month=+e.target.value;} render();});
 document.addEventListener('keydown',e=>{ if(e.target.tagName==='SELECT'||e.target.tagName==='INPUT'||!DATA) return;
@@ -592,9 +604,9 @@ async function loadZones(){
   if(!g.ok) throw new Error(ERR[g.error]||g.error);
   EMBED={}; for(const [k,z] of Object.entries(g.zones||{})) if(z.branches&&z.branches.length) EMBED[k]={zoneName:z.zone_name,year:z.year,branches:z.branches.map(normPct),updated_at:z.updated_at,updated_by:z.updated_by};
 }
-const DATA_CTRLS=['scope','month','saveOne','saveAll','fs'];
+const DATA_CTRLS=['scope','month','unit','saveOne','saveAll','fs'];
 function showEmpty(msg){
-  DATA=null; DATA_CTRLS.forEach(id=>document.getElementById(id).style.display='none'); if(chart){chart.destroy(); chart=null;}
+  DATA=null; DATA_CTRLS.forEach(id=>document.getElementById(id).style.display='none'); if(chart){chart.destroy(); chart=null;} if(chart2){chart2.destroy(); chart2=null;}
   ['tabs','scope','month'].forEach(id=>document.getElementById(id).innerHTML='');
   document.getElementById('stage').innerHTML=`<div class="empty" style="width:1600px;height:600px">${msg}</div>`; fit();
 }
