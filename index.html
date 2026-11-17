@@ -402,8 +402,7 @@ const SLIDES = [
     {lab:'Complaint', val:nf(o.cmp||0), unit:'เรื่อง', sub:[['VOC '+nf(o.voc)+' รายการ','']]},
     {lab:'CSAT / NPS', val:nf(o.csat,1), unit:'/ '+nf(o.nps,1), sub:[['CSAT · NPS (เฉลี่ย)','']]}
    ],
-   chart:{title:'CEM และ CSAT รายเดือน', unit:'%', pct:true, lines:[['cem','CEM','#F66B21',false],['csatP','CSAT','#0F766E',false]], fmt:x=>P(x), axis:x=>P(x,0)},
-   chart2:{title:'NPS รายเดือน', unit:'คะแนน', lines:[['nps','NPS','#7C3AED',false]], fmt:x=>nf(x,1), axis:x=>nf(x,0)},
+   chart:{title:'CEM · CSAT · NPS รายเดือน', unit:'CEM/CSAT % (แกนซ้าย) · NPS คะแนน (แกนขวา)', pct:true, lines:[['cem','CEM','#F66B21',false],['csatP','CSAT','#0F766E',false],['nps','NPS (แกนขวา)','#7C3AED',false,'y2']], fmt:x=>P(x), axis:x=>P(x,0), fmt2:x=>nf(x,1), axis2:x=>nf(x,0)},
    cols:[['CEM',o=>pill(o.cem,P(o.cem),.99,.92)],['OSS',o=>pill(o.oss,P(o.oss),.9,.85)],['SDA',o=>pill(o.sda,P(o.sda),.9,.85)],['Complaint',o=>nf(o.cmp||0)],['VOC',o=>nf(o.voc)],['CSAT',o=>nf(o.csat,1)],['NPS',o=>nf(o.nps,1)]],
    summary:(o,mo,rows)=>{
      const low=rows.filter(r=>r.o.cem!=null&&r.o.cem<.92).map(r=>r.code||r.label);
@@ -508,10 +507,10 @@ function drawOne(C,id,slot){
   const cv=document.getElementById(id), box=cv.parentElement;
   cv.width=box.clientWidth; cv.height=box.clientHeight;
   const m=state.month;
-  const datasets=C.lines.map(([key,label,color,dash])=>{
+  const datasets=C.lines.map(([key,label,color,dash,ax])=>{
     let data = key==='csatP' ? series('csat').map(x=>x==null?null:x/100) : series(key);
     if(!dash) data=data.map((x,i)=>i<=m?x:null);       // ปีนี้แสดงถึงเดือนที่เลือก
-    return {label,data,borderColor:color,backgroundColor:color,borderWidth:dash?2:3,borderDash:dash?[6,5]:[],
+    return {label,data,yAxisID:ax||'y',borderColor:color,backgroundColor:color,borderWidth:dash?2:3,borderDash:dash?[6,5]:[],
       pointRadius:dash?0:4,pointBackgroundColor:'#fff',pointBorderWidth:2,spanGaps:true,tension:.25};
   });
   const selPlugin={id:'sel',
@@ -519,14 +518,15 @@ function drawOne(C,id,slot){
       ctx.save(); ctx.fillStyle='rgba(246,107,33,.08)'; ctx.fillRect(x-w/2,a.top,w,a.bottom-a.top); ctx.restore(); },
     afterDatasetsDraw(c){ const ctx=c.ctx; ctx.save(); ctx.font='700 13px "Sarabun"'; ctx.textAlign='center';
       c.data.datasets.forEach((ds,i)=>{ if(ds.borderDash.length) return; const p=c.getDatasetMeta(i).data[m]; const v=ds.data[m]; if(!p||v==null) return;
-        ctx.fillStyle=ds.borderColor; ctx.fillText(C.fmt(v),p.x,p.y-12); }); ctx.restore(); }};
+        const r=ds.yAxisID==='y2'; ctx.fillStyle=ds.borderColor; ctx.fillText((r?(C.fmt2||C.fmt):C.fmt)(v),p.x,p.y+(r?24:-12)); }); ctx.restore(); }};
   const inst=new Chart(cv,{type:'line',data:{labels:MONTHS,datasets},plugins:[selPlugin],
     options:{responsive:false,animation:false,devicePixelRatio:3,maintainAspectRatio:false,
       layout:{padding:{top:24,right:16,bottom:4}},
       interaction:{mode:'index',intersect:false},
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${C.fmt(c.parsed.y)}`}}},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${(c.dataset.yAxisID==='y2'?(C.fmt2||C.fmt):C.fmt)(c.parsed.y)}`}}},
       scales:{x:{grid:{display:false},ticks:{color:'#6B7280',font:{family:'Sarabun',size:13}}},
-        y:{grace:'8%',grid:{color:'#F1ECE7'},border:{display:false},ticks:{color:'#9CA3AF',font:{family:'Sarabun',size:12},callback:v=>(C.axis||C.fmt)(v)}}}}});
+        y:{grace:'8%',grid:{color:'#F1ECE7'},border:{display:false},ticks:{color:'#9CA3AF',font:{family:'Sarabun',size:12},callback:v=>(C.axis||C.fmt)(v)}},
+        ...(C.lines.some(l=>l[4]==='y2')?{y2:{position:'right',grace:'8%',grid:{drawOnChartArea:false},border:{display:false},ticks:{color:'#7C3AED',font:{family:'Sarabun',size:12},callback:v=>(C.axis2||C.fmt2||C.fmt)(v)}}}:{})}}});
   if(slot===0) chart=inst; else chart2=inst;
 }
 function fit(){
