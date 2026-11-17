@@ -560,7 +560,7 @@ function openZone(){
 /* ---------- หน้าเลือก AM + รหัส ---------- */
 let pending=null;
 function renderLanding(){
-  document.getElementById('amGrid').innerHTML=AMS.map(a=>`<button class="amcard" data-k="${a.key}"><img class="amph" src="${AM_PHOTOS[a.key]||''}" alt=""><div><b>${a.nick}</b><span>${a.name}</span><span class="br">${a.codes.length} สาขา</span>${EMBED[a.key]?'<em class="ok">มีข้อมูล</em>':'<em class="no">ยังไม่มีข้อมูล</em>'}</div></button>`).join('');
+  document.getElementById('amGrid').innerHTML=AMS.map(a=>`<button class="amcard" data-k="${a.key}"><img class="amph" src="${AM_PHOTOS[a.key]||''}" alt=""><div><b>${a.nick}</b><span>${a.name}</span><span class="br">${EMBED[a.key]?EMBED[a.key].branches.length:a.codes.length} สาขา</span>${EMBED[a.key]?'<em class="ok">มีข้อมูล</em>':'<em class="no">ยังไม่มีข้อมูล</em>'}</div></button>`).join('');
 }
 document.getElementById('amGrid').addEventListener('click',e=>{
   const c=e.target.closest('.amcard'); if(!c) return;
