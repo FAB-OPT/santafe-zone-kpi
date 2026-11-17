@@ -348,14 +348,14 @@ function bDiff(a,b,fmt,inverse=false){
 const SLIDES = [
  { key:'Sales', title:'Sales', th:'ยอดขาย',
    cards:o=>[
-    {lab:'ยอดขาย', val:M(o.sales), dark:true, sub:[['vs แผน',bPct(o.sales,o.salesBud)],['vs ปีก่อน',bPct(o.ss.sales,o.salesLY)]]},
-    {lab:'แผนยอดขาย', val:M(o.salesBud), sub:[['ขาด/เกินแผน',bDiff(o.sales,o.salesBud,M)]]},
-    {lab:'ยอดขายปีก่อน', val:M(o.salesLY), sub:[['ผลต่าง',bDiff(o.ss.sales,o.salesLY,M)]]},
-    {lab:'Break-even sales', val:M(o.be), sub:[['ห่างจุดคุ้มทุน',bDiff(o.salesBE,o.be,M)]]},
+    {lab:'Sales 2026', val:M(o.sales), dark:true, sub:[['vs Budget (%)',bPct(o.sales,o.salesBud)],['YoY (%)',bPct(o.ss.sales,o.salesLY)]]},
+    {lab:'Budget 2026', val:M(o.salesBud), sub:[['2026 vs Budget (฿)',bDiff(o.sales,o.salesBud,M)]]},
+    {lab:'Sales 2025', val:M(o.salesLY), sub:[['2026 vs 2025 (฿)',bDiff(o.ss.sales,o.salesLY,M)]]},
+    {lab:'Break-even sales', val:M(o.be), sub:[['Sales vs Break-even (฿)',bDiff(o.salesBE,o.be,M)]]},
     {lab:'สัดส่วนช่องทาง', mix:[['Dine in',o.dine,'#F66B21'],['Delivery',o.deli,'#0F766E'],['Takeaway',o.take,'#7C3AED']]}
    ],
-   chart:{title:'ยอดขายรายเดือน', unit:'บาท', lines:[['sales','ปีนี้','#F66B21',false],['salesBud','แผน','#0EA5E9',true],['salesLY','ปีก่อน','#94A3B8',true]], fmt:M, axis:MA},
-   cols:[['ยอดขาย',o=>M(o.sales),o=>o.sales],['แผน',o=>M(o.salesBud)],['vs แผน',o=>bPct(o.sales,o.salesBud)],['ปีก่อน',o=>M(o.salesLY)],['YoY',o=>bPct(o.ss.sales,o.salesLY)],['vs BE',o=>bDiff(o.salesBE,o.be,M)]],
+   chart:{title:'ยอดขายรายเดือน', unit:'บาท', lines:[['sales','Sales 2026','#F66B21',false],['salesBud','Budget 2026','#0EA5E9',true],['salesLY','Sales 2025','#94A3B8',true]], fmt:M, axis:MA},
+   cols:[['Sales 2026',o=>M(o.sales),o=>o.sales],['Budget 2026',o=>M(o.salesBud)],['2026 vs Budget (%)',o=>bPct(o.sales,o.salesBud)],['Sales 2025',o=>M(o.salesLY)],['YoY (%)',o=>bPct(o.ss.sales,o.salesLY)],['vs Break-even (฿)',o=>bDiff(o.salesBE,o.be,M)]],
    summary:(o,mo,rows)=>{
      const hit=rows.filter(r=>r.o.sales!=null&&r.o.salesBud&&r.o.sales>=r.o.salesBud).length, n=rows.filter(r=>r.o.has).length;
      const belowBE=rows.filter(r=>r.o.beGap!=null&&r.o.beGap<0).map(r=>r.code||r.label);
@@ -365,26 +365,26 @@ const SLIDES = [
    }},
  { key:'Traffic', title:'Transaction · Customer · Ticket', th:'จำนวนบิล ลูกค้า และยอดต่อบิล',
    cards:o=>[
-    {lab:'จำนวนบิล (Trans)', val:nf(o.trans), unit:'บิล', dark:true, sub:[['vs แผน',bPct(o.trans,o.transPlan)],['vs ปีก่อน',bPct(o.ss.trans,o.transLY)]]},
-    {lab:'ลูกค้า (Customer)', val:nf(o.cust), unit:'คน', sub:[['vs แผน',bPct(o.cust,o.custPlan)],['vs ปีก่อน',bPct(o.ss.cust,o.custLY)]]},
-    {lab:'ยอดเฉลี่ยต่อบิล', val:'฿'+nf(o.ticket), sub:[['ปีก่อน ฿'+nf(o.ticketLY),bPct(o.ticket,o.ticketLY)]]},
-    {lab:'ยอดเฉลี่ยต่อคน', val:'฿'+nf(o.pc), sub:[['ปีก่อน ฿'+nf(o.pcLY),bPct(o.pc,o.pcLY)]]},
+    {lab:'Transaction', val:nf(o.trans), unit:'บิล', dark:true, sub:[['A vs P (%)',bPct(o.trans,o.transPlan)],['YoY (%)',bPct(o.ss.trans,o.transLY)]]},
+    {lab:'Customer', val:nf(o.cust), unit:'คน', sub:[['A vs P (%)',bPct(o.cust,o.custPlan)],['YoY (%)',bPct(o.ss.cust,o.custLY)]]},
+    {lab:'per tick. 2026', val:'฿'+nf(o.ticket), sub:[['per tick. 2025 ฿'+nf(o.ticketLY),bPct(o.ticket,o.ticketLY)]]},
+    {lab:'per cust. 2026', val:'฿'+nf(o.pc), sub:[['per customer 2025 ฿'+nf(o.pcLY),bPct(o.pc,o.pcLY)]]},
     {lab:'ลูกค้าเฉลี่ยต่อบิล', val:nf(o.cpb,2), unit:'คน', sub:[['ปีก่อน '+nf(o.custLY&&o.transLY?o.custLY/o.transLY:null,2),'']]}
    ],
-   chart:{title:'จำนวนบิลรายเดือน', unit:'บิล', lines:[['trans','ปีนี้','#F66B21',false],['transPlan','แผน','#0EA5E9',true],['transLY','ปีก่อน','#94A3B8',true]], fmt:x=>nf(x)},
-   cols:[['บิล',o=>nf(o.trans),o=>o.trans],['vs แผน',o=>bPct(o.trans,o.transPlan)],['YoY',o=>bPct(o.ss.trans,o.transLY)],['ลูกค้า',o=>nf(o.cust)],['YoY',o=>bPct(o.ss.cust,o.custLY)],['฿/บิล',o=>nf(o.ticket)],['vs LY',o=>bPct(o.ticket,o.ticketLY)],['฿/คน',o=>nf(o.pc)]],
+   chart:{title:'จำนวนบิลรายเดือน', unit:'บิล', lines:[['trans','Actual','#F66B21',false],['transPlan','Plan','#0EA5E9',true],['transLY','Transaction 2025','#94A3B8',true]], fmt:x=>nf(x)},
+   cols:[['Transaction',o=>nf(o.trans),o=>o.trans],['A vs P (%)',o=>bPct(o.trans,o.transPlan)],['Transaction YoY (%)',o=>bPct(o.ss.trans,o.transLY)],['Customer',o=>nf(o.cust)],['Customer YoY (%)',o=>bPct(o.ss.cust,o.custLY)],['per tick. 2026',o=>nf(o.ticket)],['per tick 2026 vs 2025',o=>bPct(o.ticket,o.ticketLY)],['per cust. 2026',o=>nf(o.pc)]],
    summary:(o,mo)=>`${mo} จำนวนบิล <b>${nf(o.trans)}</b> (${rel(o.ss.trans,o.transLY,'ปีก่อน')}) · ลูกค้า <b>${nf(o.cust)}</b> คน (${rel(o.ss.cust,o.custLY,'ปีก่อน')}) · ยอดต่อบิล <b>฿${nf(o.ticket)}</b> (${rel(o.ticket,o.ticketLY,'ปีก่อน')})`},
  { key:'Cost-People', title:'COS · COL · Hour · Productivity · Staff', th:'ต้นทุน แรงงาน และกำลังคน',
    cards:o=>[
-    {lab:'%COS ต้นทุนอาหาร', val:P(o.cos), dark:true, sub:[['งบ '+P(o.cosBud),bPpt(o.cos,o.cosBud,true)],['Waste '+P(o.waste,2),'']]},
-    {lab:'%COL ค่าแรง', val:P(o.colPct), sub:[['งบ '+P(o.colBud),bPpt(o.colPct,o.colBud,true)],['ค่าแรง '+M(o.colB),bPct(o.ss.colB,o.colBLY,true)]]},
-    {lab:'ชั่วโมงทำงาน', val:nf(o.hr), unit:'ชม.', sub:[['แผน '+nf(o.hrPlan),bDiff(o.hr,o.hrPlan,nf,true)]]},
+    {lab:'COS Actual (%)', val:P(o.cos), dark:true, sub:[['Budget (%) '+P(o.cosBud),bPpt(o.cos,o.cosBud,true)],['Waste (%) '+P(o.waste,2),'']]},
+    {lab:'COL Actual (%)', val:P(o.colPct), sub:[['Budget (%) '+P(o.colBud),bPpt(o.colPct,o.colBud,true)],['COL 2026 (฿) '+M(o.colB),bPct(o.ss.colB,o.colBLY,true)]]},
+    {lab:'Hour Actual', val:nf(o.hr), unit:'ชม.', sub:[['Plan '+nf(o.hrPlan),bDiff(o.hr,o.hrPlan,nf,true)]]},
     {lab:'Productivity', val:'฿'+nf(o.prodS), unit:'/ชม.', sub:[['บิล/ชม. '+nf(o.prodT,2),'']]},
-    {lab:'พนักงาน (Staff)', val:nf(o.staff), unit:'คน', sub:[['แผน '+nf(o.staffPlan),bDiff(o.staff,o.staffPlan,nf)],['อัตรากำลัง '+(o.staffPlan?P(o.staff/o.staffPlan,0):'—'),'']]}
+    {lab:'Staff Actual', val:nf(o.staff), unit:'คน', sub:[['Plan '+nf(o.staffPlan),bDiff(o.staff,o.staffPlan,nf)],['อัตรากำลัง '+(o.staffPlan?P(o.staff/o.staffPlan,0):'—'),'']]}
    ],
    chart:{title:'%COS และ %COL เทียบงบ', unit:'% ของยอดขาย', pct:true,
-     lines:[['cos','%COS','#F66B21',false],['cosBud','งบ %COS','#F66B21',true],['colPct','%COL','#0F766E',false],['colBud','งบ %COL','#0F766E',true]], fmt:x=>P(x), axis:x=>P(x,0)},
-   cols:[['%COS',o=>o.cos==null?'—':pill(-(o.cos-(o.cosBud??o.cos)),P(o.cos),0,-0.01)],['vs งบ',o=>bPpt(o.cos,o.cosBud,true)],['%COL',o=>o.colPct==null?'—':pill(-(o.colPct-(o.colBud??o.colPct)),P(o.colPct),0,-0.01)],['vs งบ',o=>bPpt(o.colPct,o.colBud,true)],['ชม.',o=>nf(o.hr)],['ชม. vs แผน',o=>bDiff(o.hr,o.hrPlan,nf,true)],['฿/ชม.',o=>nf(o.prodS)],['คน (A/P)',o=>nf(o.staff,o.staff%1?1:0)+' / '+nf(o.staffPlan,o.staffPlan%1?1:0)]],
+     lines:[['cos','COS Actual (%)','#F66B21',false],['cosBud','COS Budget (%)','#F66B21',true],['colPct','COL Actual (%)','#0F766E',false],['colBud','COL Budget (%)','#0F766E',true]], fmt:x=>P(x), axis:x=>P(x,0)},
+   cols:[['COS Actual (%)',o=>o.cos==null?'—':pill(-(o.cos-(o.cosBud??o.cos)),P(o.cos),0,-0.01)],['COS A vs B',o=>bPpt(o.cos,o.cosBud,true)],['COL Actual (%)',o=>o.colPct==null?'—':pill(-(o.colPct-(o.colBud??o.colPct)),P(o.colPct),0,-0.01)],['COL A vs B',o=>bPpt(o.colPct,o.colBud,true)],['Hour Actual',o=>nf(o.hr)],['Hour A vs P',o=>bDiff(o.hr,o.hrPlan,nf,true)],['Productivity Sales',o=>nf(o.prodS)],['Staff Actual / Plan',o=>nf(o.staff,o.staff%1?1:0)+' / '+nf(o.staffPlan,o.staffPlan%1?1:0)]],
    summary:(o,mo,rows)=>{
      const over=rows.filter(r=>r.o.cos!=null&&r.o.cosBud!=null&&r.o.cos>r.o.cosBud).map(r=>r.code||r.label);
      return `${mo} %COS <b>${P(o.cos)}</b> (${pptTxt(o.cos,o.cosBud)} vs งบ) · %COL <b>${P(o.colPct)}</b> (${pptTxt(o.colPct,o.colBud)} vs งบ) · Productivity <b>฿${nf(o.prodS)}/ชม.</b>`+
@@ -392,7 +392,7 @@ const SLIDES = [
    }},
  { key:'Audit', title:'Audit', th:'คะแนนตรวจและเสียงลูกค้า',
    cards:o=>[
-    {lab:'CEM เฉลี่ย', val:P(o.cem), dark:true, sub:[['เกณฑ์ 92%',o.cem==null?'':`<span class="b ${o.cem>=.92?'g':'r'}">${o.cem>=.92?'ผ่าน':'ต่ำกว่าเกณฑ์'}</span>`]]},
+    {lab:'CEM', val:P(o.cem), dark:true, sub:[['เกณฑ์ 92%',o.cem==null?'':`<span class="b ${o.cem>=.92?'g':'r'}">${o.cem>=.92?'ผ่าน':'ต่ำกว่าเกณฑ์'}</span>`]]},
     {lab:'OSS', val:P(o.oss), sub:[[o.oss==null?'ไม่มีการตรวจในช่วงนี้':'เฉลี่ยสาขาที่ตรวจ','']]},
     {lab:'SDA', val:P(o.sda), sub:[[o.sda==null?'ไม่มีการตรวจในช่วงนี้':'เฉลี่ยสาขาที่ตรวจ','']]},
     {lab:'Complaint', val:nf(o.cmp||0), unit:'เรื่อง', sub:[['VOC '+nf(o.voc)+' รายการ','']]},
@@ -407,14 +407,14 @@ const SLIDES = [
    }},
  { key:'Operating-Profit', title:'Operating Profit', th:'กำไรจากการดำเนินงาน (EBITDA)',
    cards:o=>[
-    {lab:'EBITDA', val:M(o.ebitda), dark:true, sub:[['vs งบ',bPct(o.ebitda,o.ebitdaBud)],['vs ปีก่อน',bPct(o.ss.ebitda,o.ebitdaLY)]]},
-    {lab:'งบ EBITDA', val:M(o.ebitdaBud), sub:[['ขาด/เกินงบ',bDiff(o.ebitda,o.ebitdaBud,M)]]},
-    {lab:'EBITDA ปีก่อน', val:M(o.ebitdaLY), sub:[['ผลต่าง',bDiff(o.ss.ebitda,o.ebitdaLY,M)]]},
-    {lab:'%EBITDA ต่อยอดขาย', val:P(o.margin), sub:[['งบ '+P(o.ebitdaBud&&o.salesBud?o.ebitdaBud/o.salesBud:null),bPpt(o.margin,o.ebitdaBud&&o.salesBud?o.ebitdaBud/o.salesBud:null)]]},
-    {lab:'ยอดขาย', val:M(o.sales), sub:[['vs แผน',bPct(o.sales,o.salesBud)]]}
+    {lab:'Ebitda 2026', val:M(o.ebitda), dark:true, sub:[['vs Budget (%)',bPct(o.ebitda,o.ebitdaBud)],['YoY (%)',bPct(o.ss.ebitda,o.ebitdaLY)]]},
+    {lab:'Budget 2026', val:M(o.ebitdaBud), sub:[['2026 vs Budget (฿)',bDiff(o.ebitda,o.ebitdaBud,M)]]},
+    {lab:'Ebitda 2025', val:M(o.ebitdaLY), sub:[['2026 vs 2025 (฿)',bDiff(o.ss.ebitda,o.ebitdaLY,M)]]},
+    {lab:'Ebitda % of Sales', val:P(o.margin), sub:[['Budget (%) '+P(o.ebitdaBud&&o.salesBud?o.ebitdaBud/o.salesBud:null),bPpt(o.margin,o.ebitdaBud&&o.salesBud?o.ebitdaBud/o.salesBud:null)]]},
+    {lab:'Sales 2026', val:M(o.sales), sub:[['vs Budget (%)',bPct(o.sales,o.salesBud)]]}
    ],
-   chart:{title:'EBITDA รายเดือน', unit:'บาท', lines:[['ebitda','ปีนี้','#F66B21',false],['ebitdaBud','งบ','#0EA5E9',true],['ebitdaLY','ปีก่อน','#94A3B8',true]], fmt:M, axis:MA},
-   cols:[['EBITDA',o=>M(o.ebitda),o=>o.ebitda],['งบ',o=>M(o.ebitdaBud)],['vs งบ',o=>bDiff(o.ebitda,o.ebitdaBud,M)],['ปีก่อน',o=>M(o.ebitdaLY)],['vs LY',o=>bDiff(o.ss.ebitda,o.ebitdaLY,M)],['%ยอดขาย',o=>P(o.margin)]],
+   chart:{title:'EBITDA รายเดือน', unit:'บาท', lines:[['ebitda','Ebitda 2026','#F66B21',false],['ebitdaBud','Budget 2026','#0EA5E9',true],['ebitdaLY','Ebitda 2025','#94A3B8',true]], fmt:M, axis:MA},
+   cols:[['Ebitda 2026',o=>M(o.ebitda),o=>o.ebitda],['Budget 2026',o=>M(o.ebitdaBud)],['2026 vs Budget (฿)',o=>bDiff(o.ebitda,o.ebitdaBud,M)],['Ebitda 2025',o=>M(o.ebitdaLY)],['2026 vs 2025 (฿)',o=>bDiff(o.ss.ebitda,o.ebitdaLY,M)],['Ebitda % of Sales',o=>P(o.margin)]],
    summary:(o,mo,rows)=>{
      const loss=rows.filter(r=>r.o.ebitda!=null&&r.o.ebitda<0).map(r=>r.code||r.label);
      const under=rows.filter(r=>r.o.ebitda!=null&&r.o.ebitdaBud!=null&&r.o.ebitda<r.o.ebitdaBud).length, n=rows.filter(r=>r.o.has).length;
