@@ -353,9 +353,9 @@ const SLIDES = [
  { key:'Sales', title:'Sales', th:'ยอดขาย',
    cards:o=>[
     {lab:'Sales 2026', val:M(o.sales), dark:true, sub:[['Budget '+M(o.salesBud),bPct(o.sales,o.salesBud)],['Sales 2025 '+M(o.salesLY),bPct(o.ss.sales,o.salesLY)]]},
-    {lab:'Budget 2026', val:M(o.salesBud), sub:[['2026 vs Budget (฿)',bDiff(o.sales,o.salesBud,M)]]},
-    {lab:'Sales 2025', val:M(o.salesLY), sub:[['2026 vs 2025 (฿)',bDiff(o.ss.sales,o.salesLY,M)]]},
-    {lab:'Break-even sales', val:M(o.be), sub:[['Sales vs Break-even (฿)',bDiff(o.salesBE,o.be,M)]]},
+    {lab:'Budget 2026', val:M(o.salesBud), sub:[['Sales 2026 '+M(o.sales),bDiff(o.sales,o.salesBud,M)]]},
+    {lab:'Sales 2025', val:M(o.salesLY), sub:[['Sales 2026 '+M(o.sales),bDiff(o.ss.sales,o.salesLY,M)]]},
+    {lab:'Break-even sales', val:M(o.be), sub:[['Sales 2026 '+M(o.salesBE),bDiff(o.salesBE,o.be,M)]]},
     {lab:'สัดส่วนช่องทาง', mix:[['Dine in',o.dine,'#F66B21'],['Delivery',o.deli,'#0F766E'],['Takeaway',o.take,'#7C3AED']]}
    ],
    chart:{title:'ยอดขายรายเดือน', unit:'บาท', lines:[['sales','Sales 2026','#F66B21',false],['salesBud','Budget 2026','#0EA5E9',true],['salesLY','Sales 2025','#94A3B8',true]], fmt:M, axis:MA},
@@ -412,8 +412,8 @@ const SLIDES = [
  { key:'Operating-Profit', title:'Operating Profit', th:'กำไรจากการดำเนินงาน (EBITDA)',
    cards:o=>[
     {lab:'Ebitda 2026', val:M(o.ebitda), dark:true, sub:[['Budget '+M(o.ebitdaBud),bPct(o.ebitda,o.ebitdaBud)],['Ebitda 2025 '+M(o.ebitdaLY),bPct(o.ss.ebitda,o.ebitdaLY)]]},
-    {lab:'Budget 2026', val:M(o.ebitdaBud), sub:[['2026 vs Budget (฿)',bDiff(o.ebitda,o.ebitdaBud,M)]]},
-    {lab:'Ebitda 2025', val:M(o.ebitdaLY), sub:[['2026 vs 2025 (฿)',bDiff(o.ss.ebitda,o.ebitdaLY,M)]]},
+    {lab:'Budget 2026', val:M(o.ebitdaBud), sub:[['Ebitda 2026 '+M(o.ebitda),bDiff(o.ebitda,o.ebitdaBud,M)]]},
+    {lab:'Ebitda 2025', val:M(o.ebitdaLY), sub:[['Ebitda 2026 '+M(o.ebitda),bDiff(o.ss.ebitda,o.ebitdaLY,M)]]},
     {lab:'Ebitda % of Sales', val:P(o.margin), sub:[['Budget (%) '+P(o.ebitdaBud&&o.salesBud?o.ebitdaBud/o.salesBud:null),bPpt(o.margin,o.ebitdaBud&&o.salesBud?o.ebitdaBud/o.salesBud:null)]]},
     {lab:'Sales 2026', val:M(o.sales), sub:[['Budget '+M(o.salesBud),bPct(o.sales,o.salesBud)]]}
    ],
@@ -438,7 +438,7 @@ function cardHTML(c){
   if(c.mix){
     const tot=c.mix.reduce((s,x)=>s+(x[1]||0),0)||1;
     return `<div class="card"><div class="c-lab">${c.lab}</div>
-      <div class="mix">${c.mix.map(x=>`<div style="width:${(x[1]||0)/tot*100}%;background:${x[2]}">${(x[1]||0)/tot>.08?P(x[1],0):''}</div>`).join('')}</div>
+      <div class="mix">${c.mix.map(x=>`<div style="width:${(x[1]||0)/tot*100}%;background:${x[2]}"></div>`).join('')}</div>
       <div class="c-sub">${c.mix.map(x=>`<div><span style="width:9px;height:9px;border-radius:2px;background:${x[2]};display:inline-block"></span>${x[0]} <b style="margin-left:auto;color:var(--ink)">${P(x[1])}</b></div>`).join('')}</div></div>`;
   }
   return `<div class="card ${c.dark?'dark':''}"><div class="c-lab">${c.lab}</div>
