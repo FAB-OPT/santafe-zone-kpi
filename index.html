@@ -359,7 +359,7 @@ const SLIDES = [
     {lab:'สัดส่วนช่องทาง', mix:[['Dine in',o.dine,'#F66B21',o.dine==null||o.sales==null?null:o.sales*o.dine],['Delivery',o.deli,'#0F766E',o.deli==null||o.sales==null?null:o.sales*o.deli],['Takeaway',o.take,'#7C3AED',o.take==null||o.sales==null?null:o.sales*o.take]]}
    ],
    chart:{title:'ยอดขายรายเดือน', unit:'บาท', lines:[['sales','Sales 2026','#F66B21',false],['salesBud','Budget 2026','#0EA5E9',true],['salesLY','Sales 2025','#94A3B8',true]], fmt:M, axis:MA},
-   cols:[['Sales 2026',o=>M(o.sales),o=>o.sales],['Budget 2026',o=>M(o.salesBud)],['2026 vs Budget (%)',o=>bPct(o.sales,o.salesBud)],['Sales 2025',o=>M(o.salesLY)],['YoY (%)',o=>bPct(o.ss.sales,o.salesLY)],['vs Break-even (฿)',o=>bDiff(o.salesBE,o.be,M)]],
+   cols:[['Sales 2026',o=>M(o.sales),o=>o.sales],['Budget 2026',o=>M(o.salesBud)],['2026 vs Budget (%)',o=>bPct(o.sales,o.salesBud)],['Sales 2025',o=>M(o.salesLY)],['YoY (%)',o=>bPct(o.ss.sales,o.salesLY)],['Break-even sales',o=>M(o.be)],['vs Break-even (฿)',o=>bDiff(o.salesBE,o.be,M)]],
    summary:(o,mo,rows)=>{
      const hit=rows.filter(r=>r.o.sales!=null&&r.o.salesBud&&r.o.sales>=r.o.salesBud).length, n=rows.filter(r=>r.o.has).length;
      const belowBE=rows.filter(r=>r.o.beGap!=null&&r.o.beGap<0).map(r=>r.code||r.label);
