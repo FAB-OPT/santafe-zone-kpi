@@ -81,9 +81,6 @@ table{width:100%;border-collapse:separate;border-spacing:0;font-size:15.5px;tabl
 col.c-name{width:300px}
 tbody tr:nth-child(even) td{background:#FBF9F7}
 td.hl{font-weight:700}
-.cb{position:relative;display:inline-block;min-width:110px;padding-bottom:7px}
-.cb i{position:absolute;left:0;bottom:0;height:5px;border-radius:3px;background:#F66B21;opacity:.75}
-.cb i.neg{background:#DC2626}
 .pill{display:inline-block;min-width:64px;padding:3px 10px;border-radius:8px;font-weight:700}
 .pill.g{background:#DCFCE7;color:#15803D}.pill.y{background:#FEF3C7;color:#B45309}.pill.r{background:#FEE2E2;color:#B91C1C}
 th{font-size:13.5px;color:var(--ink2);font-weight:700;text-align:center;padding:9px 8px;border-bottom:2px solid var(--line);white-space:nowrap;background:#F8F5F2}
@@ -462,9 +459,7 @@ function tableRows(){
 }
 function cell(c,o,rows){
   if(!c[2]) return c[1](o);
-  const v=c[2](o); if(v==null) return '—';
-  const mx=Math.max(...rows.map(r=>Math.abs(c[2](r.o)||0)))||1;
-  return `<span class="cb">${c[1](o)}<i class="${v<0?'neg':''}" style="width:${Math.abs(v)/mx*100}%"></i></span>`;
+  return c[2](o)==null ? '—' : c[1](o);   // ไม่มีแท่งสีใต้ตัวเลขแล้ว
 }
 function chartPanel(c,id){ return `<div class="panel chart">
         <div class="p-title">${c.title}<span class="sub">${c.unit} · ม.ค.–ธ.ค. ${DATA.year}</span></div>
