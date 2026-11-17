@@ -55,6 +55,11 @@ select,.btn{font:inherit;font-size:13px;border:1px solid var(--line);background:
 .c-val small{font-size:16px;font-weight:600;color:var(--ink2);margin-left:4px}
 .c-sub{display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--ink2)}
 .c-sub div{display:flex;align-items:center;gap:6px}
+.c-sub .mixrow{display:grid;grid-template-columns:10px 1fr auto 58px;gap:10px;align-items:center;font-variant-numeric:tabular-nums}
+.mixrow .dot{width:10px;height:10px;border-radius:3px}
+.mixrow .ml{color:var(--ink2)}
+.mixrow .mv{font-size:15px;font-weight:700;color:var(--ink);text-align:right}
+.mixrow .mp{font-size:15px;font-weight:800;text-align:right}
 .c-sub .sv{font-size:16px;font-weight:800;color:var(--ink);letter-spacing:.01em}
 .card.dark .c-sub .sv{color:#fff}
 .card.dark{background:#1E2230;color:#fff}
@@ -439,7 +444,7 @@ function cardHTML(c){
     const tot=c.mix.reduce((s,x)=>s+(x[1]||0),0)||1;
     return `<div class="card"><div class="c-lab">${c.lab}</div>
       <div class="mix">${c.mix.map(x=>`<div style="width:${(x[1]||0)/tot*100}%;background:${x[2]}"></div>`).join('')}</div>
-      <div class="c-sub">${c.mix.map(x=>`<div><span style="width:9px;height:9px;border-radius:2px;background:${x[2]};display:inline-block"></span>${x[0]} <b class="sv" style="margin-left:auto">${x[3]==null?'':M(x[3])}</b><b style="min-width:52px;text-align:right;color:var(--ink)">${P(x[1])}</b></div>`).join('')}</div></div>`;
+      <div class="c-sub">${c.mix.map(x=>`<div class="mixrow"><span class="dot" style="background:${x[2]}"></span><span class="ml">${x[0]}</span><b class="mv">${x[3]==null?'':M(x[3])}</b><b class="mp" style="color:${x[2]}">${P(x[1])}</b></div>`).join('')}</div></div>`;
   }
   return `<div class="card ${c.dark?'dark':''}"><div class="c-lab">${c.lab}</div>
     <div class="c-val">${c.val}${c.unit?`<small>${c.unit}</small>`:''}</div>
