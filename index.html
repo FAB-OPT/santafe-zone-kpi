@@ -60,8 +60,8 @@ select,.btn{font:inherit;font-size:13px;border:1px solid var(--line);background:
 .mixrow .ml{color:var(--ink2)}
 .mixrow .mv{font-size:15px;font-weight:700;color:var(--ink);text-align:right}
 .mixrow .mp{font-size:15px;font-weight:800;text-align:right}
-.c-sub .sv{font-size:16px;font-weight:800;color:var(--ink);letter-spacing:.01em}
-.card.dark .c-sub .sv{color:#fff}
+.c-sub .sv{font-size:13.5px;font-weight:600;color:var(--ink2);letter-spacing:.01em}
+.card.dark .c-sub .sv{color:#C9CDD8}
 .card.dark{background:#1E2230;color:#fff}
 .card.dark .c-lab,.card.dark .c-sub,.card.dark .c-val small{color:#C9CDD8}
 .b{display:inline-block;font-weight:700;font-size:12.5px;padding:2px 8px;border-radius:999px;white-space:nowrap}
@@ -355,8 +355,8 @@ const SLIDES = [
  { key:'Sales', title:'Sales', th:'ยอดขาย',
    cards:o=>[
     {lab:'Sales 2026', val:M(o.sales), dark:true, sub:[['Budget '+M(o.salesBud),bPct(o.sales,o.salesBud)],['Sales 2025 '+M(o.salesLY),bPct(o.ss.sales,o.salesLY)]]},
-    {lab:'Budget 2026', val:M(o.salesBud), sub:[['Sales 2026 '+M(o.sales),bDiff(o.sales,o.salesBud,M)]]},
-    {lab:'Sales 2025', val:M(o.salesLY), sub:[['Sales 2026 '+M(o.sales),bDiff(o.ss.sales,o.salesLY,M)]]},
+    {lab:'Sales 2026 vs Budget', val:M(o.sales), sub:[['Budget 2026 '+M(o.salesBud),bDiff(o.sales,o.salesBud,M)]]},
+    {lab:'Sales 2026 vs 2025', val:M(o.sales), sub:[['Sales 2025 '+M(o.salesLY),bDiff(o.ss.sales,o.salesLY,M)]]},
     {lab:'Break-even sales', val:M(o.be), sub:[['Sales 2026 '+M(o.salesBE),bDiff(o.salesBE,o.be,M)]]},
     {lab:'สัดส่วนช่องทาง', mix:[['Dine in',o.dine,'#F66B21',o.dine==null||o.sales==null?null:o.sales*o.dine],['Delivery',o.deli,'#0F766E',o.deli==null||o.sales==null?null:o.sales*o.deli],['Takeaway',o.take,'#7C3AED',o.take==null||o.sales==null?null:o.sales*o.take]]}
    ],
@@ -414,8 +414,8 @@ const SLIDES = [
  { key:'Operating-Profit', title:'Operating Profit', th:'กำไรจากการดำเนินงาน (EBITDA)',
    cards:o=>[
     {lab:'Ebitda 2026', val:M(o.ebitda), dark:true, sub:[['Budget '+M(o.ebitdaBud),bPct(o.ebitda,o.ebitdaBud)],['Ebitda 2025 '+M(o.ebitdaLY),bPct(o.ss.ebitda,o.ebitdaLY)]]},
-    {lab:'Budget 2026', val:M(o.ebitdaBud), sub:[['Ebitda 2026 '+M(o.ebitda),bDiff(o.ebitda,o.ebitdaBud,M)]]},
-    {lab:'Ebitda 2025', val:M(o.ebitdaLY), sub:[['Ebitda 2026 '+M(o.ebitda),bDiff(o.ss.ebitda,o.ebitdaLY,M)]]},
+    {lab:'Ebitda 2026 vs Budget', val:M(o.ebitda), sub:[['Budget 2026 '+M(o.ebitdaBud),bDiff(o.ebitda,o.ebitdaBud,M)]]},
+    {lab:'Ebitda 2026 vs 2025', val:M(o.ebitda), sub:[['Ebitda 2025 '+M(o.ebitdaLY),bDiff(o.ss.ebitda,o.ebitdaLY,M)]]},
     {lab:'Ebitda % of Sales', val:P(o.margin), sub:[['Budget (%) '+P(o.ebitdaBud&&o.salesBud?o.ebitdaBud/o.salesBud:null),bPpt(o.margin,o.ebitdaBud&&o.salesBud?o.ebitdaBud/o.salesBud:null)]]},
     {lab:'Sales 2026', val:M(o.sales), sub:[['Budget '+M(o.salesBud),bPct(o.sales,o.salesBud)]]}
    ],
