@@ -309,7 +309,7 @@ function monthCols(ws){
   return null; }
 function parseWorkbook(wb){
   const branches = [];
-  let zoneName = '', year = 2026;
+  let zoneName = '', year = 2026, zoneRows = null;
   const meta = (wb.Workbook && wb.Workbook.Sheets) || [];
   wb.SheetNames.forEach((name, idx) => {
     const ws = wb.Sheets[name];
@@ -317,7 +317,11 @@ function parseWorkbook(wb){
     const a1 = ws['A1'] ? String(ws['A1'].v) : '';
     const a2 = ws['A2'] ? String(ws['A2'].v) : '';
     const y = a1.match(/(20\d\d)/); if(y) year = +y[1];
-    if(/^zone$/i.test(name.trim())){ zoneName = a2.replace(/^Zone\s*:\s*/i,'').replace(/\s+/g,' ').trim(); return; }
+    if(/^zone$/i.test(name.trim())){ zoneName = a2.replace(/^Zone\s*:\s*/i,'').replace(/\s+/g,' ').trim();
+      /* ยอดต่อบิล / ยอดต่อคน รายเดือนของทั้งโซน ตามที่รายงานคำนวณไว้ (แถว 29 · 30 · 32 · 33) */
+      const zc = monthCols(ws); zoneRows = {};
+      [['tickX',29],['tickXLY',30],['pcX',32],['pcXLY',33]].forEach(([k,row])=>{ zoneRows[k]=[]; for(let m=0;m<12;m++) zoneRows[k].push(zc ? (zc[m]>=0 ? cellNum(ws,row-1,zc[m]) : null) : cellNum(ws,row-1,3+m)); });
+      return; }
     // ชื่อชีทสาขา: 5003 หรือย่อเป็น 18 / 12. (= 5018 / 5012) · ชีทซ่อนที่มียอดขายนับด้วยให้ตรงกับชีต Zone
     let code = name.trim().replace(/\.$/,'');
     if(!/^\d{1,4}$/.test(code)) return;           // ชีทซ่อนที่เป็นรหัสสาขาและมียอดขายก็นับ (ชีต Zone รวมไว้ด้วย)
@@ -333,6 +337,7 @@ function parseWorkbook(wb){
   });
   if(!branches.length) throw new Error('ไม่พบชีทสาขา (ชื่อชีทเป็นรหัส 4 หลัก เช่น 5003)');
   branches.sort((a,b)=>a.code.localeCompare(b.code));
+  if(zoneRows) branches[0].zoneRows = zoneRows;   // เก็บไปกับสาขาแรก (บันทึกขึ้นฐานพร้อมข้อมูลสาขา)
   return {zoneName: zoneName || 'Zone', year, branches};
 }
 
@@ -382,6 +387,10 @@ function calc(blist, months){
   /* ยอดต่อบิล 2026 / 2025 และยอดต่อคน 2025: ใช้ค่าที่กรอกในไฟล์ เฉลี่ยเฉพาะสาขาที่มีค่า (ไฟล์เก่าที่ไม่มีแถวนี้ ใช้ยอดขาย ÷ บิลแทน) */
   const fmean=a=>a.length?a.reduce((s,x)=>s+x,0)/a.length:null;
   [['ticket','tickX'],['ticketLY','tickXLY'],['pcLY','pcXLY']].forEach(([k,src])=>{ const v=fmean(fx[src]); if(v!=null) o[k]=v; });
+  /* ทั้งโซน: ยอดต่อบิล / ยอดต่อคน ใช้ค่ารายเดือนในชีต Zone ของรายงาน (YTD = เฉลี่ยเฉพาะเดือนที่มีค่า ด้านล่าง) */
+  const zr = (typeof DATA!=='undefined' && DATA && blist===DATA.branches) ? ((blist.find(b=>b.zoneRows)||{}).zoneRows||null) : null;
+  if(zr && months.length===1){ const m0=months[0];
+    [['ticket','tickX'],['ticketLY','tickXLY'],['pc','pcX'],['pcLY','pcXLY']].forEach(([k,src])=>{ const x=zr[src]&&zr[src][m0]; if(x>0) o[k]=x; }); }
   /* หลายเดือน (เหมือนช่อง YTD ในไฟล์ Excel): ค่าต่อหน่วยและค่า % = เฉลี่ยของค่ารายเดือน หารตามจำนวนเดือนที่มีข้อมูลจริง
      (เช่น ยอดต่อบิลปีก่อน = เฉลี่ยยอดต่อบิลของแต่ละเดือน ไม่ใช่ยอดขายรวม ÷ บิลรวม) */
   if(months.length>1){
