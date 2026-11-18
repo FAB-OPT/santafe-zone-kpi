@@ -326,6 +326,8 @@ const SUMS = ['sales','salesBud','salesLY','be','ebitda','ebitdaBud','ebitdaLY',
   'trans','transPlan','transLY','colB','colBLY','hr','hrPlan','staff','staffPlan','cmp','voc'];
 const WEIGHTED = ['cos','cosBud','colBud','dine','deli','take','waste'];  // ถ่วงด้วยยอดขาย
 const AVGS = ['cem','oss','sda','csat','nps'];
+/* OSS / SDA: 0 หรือว่าง = ไม่ได้ตรวจ → ไม่แสดง (—) และไม่นำมาเฉลี่ย · เฉลี่ยเฉพาะค่าที่มากกว่า 0 */
+const ZERO_NA = new Set(['oss','sda']);
 /* รวมค่าของสาขา × เดือน ที่เลือก */
 function calc(blist, months){
   const o = {}; SUMS.forEach(k=>o[k]=null); o.salesBE=null;
@@ -341,7 +343,7 @@ function calc(blist, months){
     if(cmp) for(const [k,ly] of Object.entries(LYP)){ if(V[k][m]!=null && V[ly][m]!=null) o.ss[k]=(o.ss[k]||0)+V[k][m]; }
     const wt = V.sales[m] || V.salesBud[m] || 0;
     WEIGHTED.forEach(k=>{ const x=V[k][m]; if(x!=null && wt){ w[k][0]+=x*wt; w[k][1]+=wt; } });
-    AVGS.forEach(k=>{ const x=V[k][m]; if(x!=null) a[k].push(x); });
+    AVGS.forEach(k=>{ const x=V[k][m]; if(x!=null && !(ZERO_NA.has(k) && !(x>0))) a[k].push(x); });
   }
   /* YoY = ยอดรวมปีนี้ ÷ ยอดรวมปีก่อน (ตรงกับไฟล์) · สาขา/ช่วงที่ปีก่อนมียอดน้อยกว่าครึ่งของปีนี้ (เปิดใหม่) เทียบไม่ได้ → ไม่โชว์ % (กันขึ้นเป็นหมื่น %) */
   const okLY = o.sales!=null && o.salesLY!=null && o.salesLY>=.5*o.sales;
