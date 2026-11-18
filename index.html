@@ -263,6 +263,7 @@ const ROWS = {
   sales:10, salesBud:11, salesLY:13, be:15, dine:16, deli:17, take:18,
   cust:19, custPlan:20, custLY:21,
   trans:24, transPlan:25, transLY:26,
+  tickX:29, tickXLY:30, pcXLY:33,   // ยอดต่อบิล 2026 / 2025 และยอดต่อคน 2025 ที่กรอกในไฟล์ (ไม่ใช่ยอดขาย ÷ บิล)
   cos:35, cosBud:38, waste:44,
   col:45, colBud:46, colB:48, colBLY:49,
   hr:51, hrPlan:52, staff:56, staffPlan:57,
@@ -336,6 +337,7 @@ function calc(blist, months){
   const w = {}; WEIGHTED.forEach(k=>w[k]=[0,0]);
   const a = {}; AVGS.forEach(k=>a[k]=[]);
   const p = {};   // อัตราส่วน: ตัวตั้ง/ตัวหาร รวมเฉพาะสาขา×เดือนที่มีข้อมูลทั้งสองฝั่ง
+  const fx = {tickX:[], tickXLY:[], pcXLY:[]};   // ค่าที่กรอกในไฟล์ของแต่ละสาขา (เฉพาะที่มากกว่า 0)
   // ยอดปีนี้เฉพาะเดือนที่ปีก่อนมีข้อมูล (ใช้เทียบ YoY ให้แฟร์กับสาขาที่เพิ่งเปิดปีก่อน)
   const LYP={sales:'salesLY',trans:'transLY',cust:'custLY',ebitda:'ebitdaLY',colB:'colBLY'}; o.ss={}; const LYK=new Set(Object.values(LYP));
   for(const b of blist) for(const m of months){
@@ -347,6 +349,7 @@ function calc(blist, months){
     const wt = V.sales[m] || V.salesBud[m] || 0;
     WEIGHTED.forEach(k=>{ const x=V[k][m]; if(x!=null && wt && !(W_ZERO_NA.has(k) && x===0)){ w[k][0]+=x*wt; w[k][1]+=wt; } });
     const pr=(key,num,den)=>{ const x=V[num][m], y=V[den][m]; if(x && y){ const q=p[key]||(p[key]=[0,0]); q[0]+=x; q[1]+=y; } };
+    Object.keys(fx).forEach(k=>{ const x=V[k]&&V[k][m]; if(x>0) fx[k].push(x); });
     pr('ticket','sales','trans'); pr('ticketLY','salesLY','transLY'); pr('pc','sales','cust'); pr('pcLY','salesLY','custLY'); pr('cpb','cust','trans');
     pr('colPct','colB','sales'); pr('prodS','sales','hr'); pr('prodT','trans','hr'); pr('margin','ebitda','sales');
     /* ค่าเฉลี่ย: หารตามจำนวนชุดข้อมูลที่มีจริง — ว่างหรือ 0 = ยังไม่มีข้อมูล ไม่นับ (OSS/SDA ต้องมากกว่า 0 · NPS ติดลบได้) */
@@ -362,6 +365,17 @@ function calc(blist, months){
   AVGS.forEach(k=>o[k]= a[k].length ? a[k].reduce((s,x)=>s+x,0)/a[k].length : null);
   /* อัตราส่วนหลายเดือน: หารเฉพาะเดือนที่มีข้อมูลทั้งตัวตั้งและตัวหาร (เดือนที่ไม่มีบิล/ชั่วโมง/ค่าแรง ไม่ดึงค่าเพี้ยน) */
   ['ticket','ticketLY','pc','pcLY','cpb','colPct','prodS','prodT','margin'].forEach(k=>{ const q=p[k]; o[k]= q&&q[1] ? q[0]/q[1] : null; });
+  /* ยอดต่อบิล 2026 / 2025 และยอดต่อคน 2025: ใช้ค่าที่กรอกในไฟล์ เฉลี่ยเฉพาะสาขาที่มีค่า (ไฟล์เก่าที่ไม่มีแถวนี้ ใช้ยอดขาย ÷ บิลแทน) */
+  const fmean=a=>a.length?a.reduce((s,x)=>s+x,0)/a.length:null;
+  [['ticket','tickX'],['ticketLY','tickXLY'],['pcLY','pcXLY']].forEach(([k,src])=>{ const v=fmean(fx[src]); if(v!=null) o[k]=v; });
+  /* หลายเดือน (เหมือนช่อง YTD ในไฟล์ Excel): ค่าต่อหน่วยและค่า % = เฉลี่ยของค่ารายเดือน หารตามจำนวนเดือนที่มีข้อมูลจริง
+     (เช่น ยอดต่อบิลปีก่อน = เฉลี่ยยอดต่อบิลของแต่ละเดือน ไม่ใช่ยอดขายรวม ÷ บิลรวม) */
+  if(months.length>1){
+    const per=months.map(mm=>calc(blist,[mm]));
+    const MEAN=['ticket','ticketLY','pc','pcLY','cpb','cos','cosBud','colPct','colBud','waste','cem','oss','sda','csat','nps'], MIX=['dine','deli','take'];
+    MEAN.forEach(k=>{ const v=per.map(x=>x[k]).filter(x=>x!=null && x!==0 && isFinite(x)); o[k]= v.length ? v.reduce((s,x)=>s+x,0)/v.length : null; });
+    MIX.forEach(k=>{ const v=per.map(x=>x[k]).filter(x=>x!=null && isFinite(x)); o[k]= v.length ? v.reduce((s,x)=>s+x,0)/v.length : null; });
+  }
   o.beGap=(o.salesBE!=null&&o.be!=null)?o.salesBE-o.be:null;
   o.has = o.sales!=null;
   return o;
