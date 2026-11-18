@@ -328,11 +328,14 @@ const WEIGHTED = ['cos','cosBud','colBud','dine','deli','take','waste'];  // ถ
 const AVGS = ['cem','oss','sda','csat','nps'];
 /* OSS / SDA: 0 หรือว่าง = ไม่ได้ตรวจ → ไม่แสดง (—) และไม่นำมาเฉลี่ย · เฉลี่ยเฉพาะค่าที่มากกว่า 0 */
 const ZERO_NA = new Set(['oss','sda']);
+/* % ต้นทุนที่ถ่วงด้วยยอดขาย: 0 = ยังไม่มีข้อมูล ไม่นับ (สัดส่วนช่องทาง 0% เกิดขึ้นได้จริง จึงยังนับ) */
+const W_ZERO_NA = new Set(['cos','cosBud','colBud','waste']);
 /* รวมค่าของสาขา × เดือน ที่เลือก */
 function calc(blist, months){
   const o = {}; SUMS.forEach(k=>o[k]=null); o.salesBE=null;
   const w = {}; WEIGHTED.forEach(k=>w[k]=[0,0]);
   const a = {}; AVGS.forEach(k=>a[k]=[]);
+  const p = {};   // อัตราส่วน: ตัวตั้ง/ตัวหาร รวมเฉพาะสาขา×เดือนที่มีข้อมูลทั้งสองฝั่ง
   // ยอดปีนี้เฉพาะเดือนที่ปีก่อนมีข้อมูล (ใช้เทียบ YoY ให้แฟร์กับสาขาที่เพิ่งเปิดปีก่อน)
   const LYP={sales:'salesLY',trans:'transLY',cust:'custLY',ebitda:'ebitdaLY',colB:'colBLY'}; o.ss={}; const LYK=new Set(Object.values(LYP));
   for(const b of blist) for(const m of months){
@@ -342,8 +345,12 @@ function calc(blist, months){
     if(V.be[m]) o.salesBE=(o.salesBE||0)+(V.sales[m]||0);   // ยอดขายเฉพาะสาขา/เดือนที่มี BE (กัน vs BE เพี้ยนเมื่อบางสาขาไม่ได้ใส่ BE)
     if(cmp) for(const [k,ly] of Object.entries(LYP)){ if(V[k][m]!=null && V[ly][m]!=null) o.ss[k]=(o.ss[k]||0)+V[k][m]; }
     const wt = V.sales[m] || V.salesBud[m] || 0;
-    WEIGHTED.forEach(k=>{ const x=V[k][m]; if(x!=null && wt){ w[k][0]+=x*wt; w[k][1]+=wt; } });
-    AVGS.forEach(k=>{ const x=V[k][m]; if(x!=null && !(ZERO_NA.has(k) && !(x>0))) a[k].push(x); });
+    WEIGHTED.forEach(k=>{ const x=V[k][m]; if(x!=null && wt && !(W_ZERO_NA.has(k) && x===0)){ w[k][0]+=x*wt; w[k][1]+=wt; } });
+    const pr=(key,num,den)=>{ const x=V[num][m], y=V[den][m]; if(x && y){ const q=p[key]||(p[key]=[0,0]); q[0]+=x; q[1]+=y; } };
+    pr('ticket','sales','trans'); pr('ticketLY','salesLY','transLY'); pr('pc','sales','cust'); pr('pcLY','salesLY','custLY'); pr('cpb','cust','trans');
+    pr('colPct','colB','sales'); pr('prodS','sales','hr'); pr('prodT','trans','hr'); pr('margin','ebitda','sales');
+    /* ค่าเฉลี่ย: หารตามจำนวนชุดข้อมูลที่มีจริง — ว่างหรือ 0 = ยังไม่มีข้อมูล ไม่นับ (OSS/SDA ต้องมากกว่า 0 · NPS ติดลบได้) */
+    AVGS.forEach(k=>{ const x=V[k][m]; if(x!=null && x!==0 && !(ZERO_NA.has(k) && !(x>0))) a[k].push(x); });
   }
   /* YoY = ยอดรวมปีนี้ ÷ ยอดรวมปีก่อน (ตรงกับไฟล์) · สาขา/ช่วงที่ปีก่อนมียอดน้อยกว่าครึ่งของปีนี้ (เปิดใหม่) เทียบไม่ได้ → ไม่โชว์ % (กันขึ้นเป็นหมื่น %) */
   const okLY = o.sales!=null && o.salesLY!=null && o.salesLY>=.5*o.sales;
@@ -353,11 +360,9 @@ function calc(blist, months){
     o[k]= per.length ? per.reduce((s,x)=>s+x,0)/per.length : null; });
   WEIGHTED.forEach(k=>o[k]= w[k][1] ? w[k][0]/w[k][1] : null);
   AVGS.forEach(k=>o[k]= a[k].length ? a[k].reduce((s,x)=>s+x,0)/a[k].length : null);
-  const d = (x,y)=> (x!=null && y) ? x/y : null;
-  o.ticket=d(o.sales,o.trans); o.ticketLY=d(o.salesLY,o.transLY);
-  o.pc=d(o.sales,o.cust); o.pcLY=d(o.salesLY,o.custLY); o.cpb=d(o.cust,o.trans);
-  o.colPct=d(o.colB,o.sales); o.prodS=d(o.sales,o.hr); o.prodT=d(o.trans,o.hr);
-  o.margin=d(o.ebitda,o.sales); o.beGap=(o.salesBE!=null&&o.be!=null)?o.salesBE-o.be:null;
+  /* อัตราส่วนหลายเดือน: หารเฉพาะเดือนที่มีข้อมูลทั้งตัวตั้งและตัวหาร (เดือนที่ไม่มีบิล/ชั่วโมง/ค่าแรง ไม่ดึงค่าเพี้ยน) */
+  ['ticket','ticketLY','pc','pcLY','cpb','colPct','prodS','prodT','margin'].forEach(k=>{ const q=p[k]; o[k]= q&&q[1] ? q[0]/q[1] : null; });
+  o.beGap=(o.salesBE!=null&&o.be!=null)?o.salesBE-o.be:null;
   o.has = o.sales!=null;
   return o;
 }
