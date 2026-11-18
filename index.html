@@ -107,6 +107,12 @@ td.hl{font-weight:700}
 .pill.g{background:#DCFCE7;color:#15803D}.pill.y{background:#FEF3C7;color:#B45309}.pill.r{background:#FEE2E2;color:#B91C1C}
 th{font-size:13.5px;color:var(--ink2);font-weight:700;text-align:center;padding:9px 8px;border-bottom:2px solid var(--line);white-space:nowrap;background:#F8F5F2}
 th:first-child,td:first-child{text-align:left;max-width:320px;overflow:hidden;text-overflow:ellipsis}
+th.sortable{cursor:pointer;user-select:none}
+th.sortable:hover{color:var(--ink);background:#F1ECE6}
+th .si{display:inline-block;margin-left:5px;font-size:11px;color:#C4BAB0;font-weight:700}
+th.sortable:hover .si{color:var(--ink2)}
+th.on{color:var(--ink);background:var(--or-soft);box-shadow:inset 0 -2px 0 var(--or)}
+th.on .si{color:var(--or)}
 td{padding:8px 8px;text-align:center;border-bottom:1px solid #F4F1EE;white-space:nowrap;font-variant-numeric:tabular-nums}
 tr.tot td{font-weight:800;background:#FFF6EF}
 td .b{font-size:12px}
@@ -481,6 +487,51 @@ function cardHTML(c){
     <div class="c-val">${c.val}${c.unit?`<small>${c.unit}</small>`:''}</div>
     <div class="c-sub">${(c.sub||[]).map(s=>`<div>${hiNum(s[0])} ${s[1]?'<span style="margin-left:auto">'+s[1]+'</span>':''}</div>`).join('')}</div></div>`;
 }
+/* ---------- เรียงตารางจากหัวคอลัมน์ (คลิก: มาก→น้อย · คลิกอีก: น้อย→มาก · คลิกอีก: ลำดับเดิม) ----------
+   ค่าดิบที่ใช้เรียง ผูกด้วยชื่อหัวคอลัมน์ของแต่ละหน้า (คอลัมน์ไหนไม่มีในนี้ จะดึงตัวเลขจากข้อความในช่องแทน) */
+const rP=(a,b)=>a==null||!b?null:(a-b)/Math.abs(b), rD=(a,b)=>a==null||b==null?null:a-b;
+const SORTV={
+  'Sales':{'Sales 2026':o=>o.sales,'Budget 2026':o=>o.salesBud,'2026 vs Budget (%)':o=>rP(o.sales,o.salesBud),'Sales 2025':o=>o.salesLY,
+    'YoY (%)':o=>rP(o.ss.sales,o.salesLY),'Break-even sales':o=>o.be,'vs Break-even (฿)':o=>rD(o.salesBE,o.be)},
+  'Traffic':{'Transaction':o=>o.trans,'A vs P (%)':o=>rP(o.trans,o.transPlan),'Transaction YoY (%)':o=>rP(o.ss.trans,o.transLY),'Customer':o=>o.cust,
+    'Customer YoY (%)':o=>rP(o.ss.cust,o.custLY),'per tick. 2026':o=>o.ticket,'per tick 2026 vs 2025':o=>rP(o.ticket,o.ticketLY),'per cust. 2026':o=>o.pc},
+  'Cost-People':{'COS Actual (%)':o=>o.cos,'COS A vs B':o=>rD(o.cos,o.cosBud),'COL Actual (%)':o=>o.colPct,'COL A vs B':o=>rD(o.colPct,o.colBud),
+    'Hour Actual':o=>o.hr,'Hour A vs P':o=>rD(o.hr,o.hrPlan),'Productivity Sales':o=>o.prodS,'Staff Actual / Plan':o=>o.staff},
+  'Audit':{'CEM':o=>o.cem,'OSS':o=>o.oss,'SDA':o=>o.sda,'Complaint':o=>o.cmp||0,'VOC':o=>o.voc,'CSAT':o=>o.csat,'NPS':o=>o.nps},
+  'Operating-Profit':{'Ebitda 2026':o=>o.ebitda,'Budget 2026':o=>o.ebitdaBud,'2026 vs Budget (฿)':o=>rD(o.ebitda,o.ebitdaBud),'Ebitda 2025':o=>o.ebitdaLY,
+    '2026 vs 2025 (฿)':o=>rD(o.ss.ebitda,o.ebitdaLY),'Ebitda % of Sales':o=>o.margin}
+};
+state.sort={};   // {slideKey: {i: index คอลัมน์, dir: -1 มาก→น้อย | 1 น้อย→มาก}}
+function sortVal(S,c,r){
+  if(!r.o.has&&S.key!=='Audit') return null;
+  const f=(SORTV[S.key]||{})[c[0]];
+  let v;
+  if(f){ try{ v=f(r.o); }catch(e){ v=null; } }
+  else { const t=String(c[1](r.o)).replace(/<[^>]*>/g,'').replace(/,/g,'').replace('−','-').match(/-?\d+(\.\d+)?/); v=t?+t[0]:null; }
+  return v==null||!isFinite(v)?null:v;
+}
+function sortRows(S,rows){
+  const s=state.sort[S.key]; if(!s||!S.cols[s.i]) return rows;
+  const c=S.cols[s.i];
+  return rows.map((r,k)=>({r,k,v:sortVal(S,c,r)})).sort((a,b)=>{
+    if(a.v==null&&b.v==null) return a.k-b.k; if(a.v==null) return 1; if(b.v==null) return -1;   // ช่องว่างไปท้ายเสมอ
+    return (a.v-b.v)*s.dir || a.k-b.k;
+  }).map(x=>x.r);
+}
+function sortTh(S,c,i){
+  const s=state.sort[S.key], on=s&&s.i===i;
+  const ic = on ? (s.dir<0?'▼':'▲') : '↕';
+  const tip = on ? (s.dir<0?'เรียงมากไปน้อย · คลิกเพื่อเรียงน้อยไปมาก':'เรียงน้อยไปมาก · คลิกเพื่อกลับลำดับเดิม') : 'คลิกเพื่อเรียงมากไปน้อย';
+  return `<th class="sortable${on?' on':''}" data-sort="${i}" title="${tip}">${c[0]}<span class="si">${ic}</span></th>`;
+}
+document.getElementById('stage').addEventListener('click',e=>{
+  const th=e.target.closest('th[data-sort]'); if(!th) return;
+  const S=SLIDES[state.slide], i=+th.dataset.sort, s=state.sort[S.key];
+  if(i<0||!s||s.i!==i) state.sort[S.key] = i<0 ? null : {i,dir:-1};
+  else if(s.dir<0) s.dir=1;
+  else state.sort[S.key]=null;
+  const vp=document.getElementById('viewport'), y=vp.scrollTop; render(); vp.scrollTop=y;
+});
 function tableRows(){
   const m=state.month;
   if(state.scope==='ZONE'){
@@ -520,9 +571,9 @@ function render(){
         <div class="p-title">${state.scope==='ZONE'?'รายสาขา · '+(state.ytd?'ม.ค.–'+MONTHS[m]+' (YTD)':MONTHS[m]):'รายเดือน · ม.ค.–'+MONTHS[m]}</div>
         <div style="overflow:hidden"><table>
           <colgroup><col class="c-name">${S.cols.map(()=>'<col>').join('')}</colgroup>
-          <thead><tr><th>${T.head}</th>${S.cols.map(c=>`<th>${c[0]}</th>`).join('')}</tr></thead>
+          <thead><tr><th${state.sort[S.key]?' class="sortable" data-sort="-1" title="คลิกเพื่อกลับลำดับเดิม"':''}>${T.head}</th>${S.cols.map((c,i)=>sortTh(S,c,i)).join('')}</tr></thead>
           <tbody><tr class="tot"><td>${T.total.label}</td>${S.cols.map(c=>`<td>${c[1](T.total.o)}</td>`).join('')}</tr>
-          ${T.rows.map(r=>`<tr><td>${r.label}</td>${S.cols.map(c=>`<td${c[2]?' class="hl"':''}>${r.o.has||S.key==='Audit'?cell(c,r.o,T.rows):'—'}</td>`).join('')}</tr>`).join('')}</tbody>
+          ${sortRows(S,T.rows).map(r=>`<tr><td>${r.label}</td>${S.cols.map(c=>`<td${c[2]?' class="hl"':''}>${r.o.has||S.key==='Audit'?cell(c,r.o,T.rows):'—'}</td>`).join('')}</tr>`).join('')}</tbody>
         </table></div>
       </div>
     </div>
@@ -865,7 +916,8 @@ async function captureSlide(){
   const st=document.getElementById('stage'), prev=st.style.transform;
   st.style.transform='none';
   try{
-    const c=await html2canvas(document.getElementById('slide'),{scale:2,backgroundColor:'#FAF7F4',logging:false});
+    const c=await html2canvas(document.getElementById('slide'),{scale:2,backgroundColor:'#FAF7F4',logging:false,
+      onclone:d=>d.querySelectorAll('th:not(.on) .si').forEach(x=>x.remove())});   // รูปที่บันทึก: ไม่โชว์ไอคอน ↕ ของคอลัมน์ที่ไม่ได้เรียง
     return await new Promise(r=>c.toBlob(r,'image/png'));
   } finally { st.style.transform=prev; }
 }
