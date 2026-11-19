@@ -377,6 +377,10 @@ function calc(blist, months){
   /* YoY = ยอดรวมปีนี้ ÷ ยอดรวมปีก่อน (ตรงกับไฟล์) · สาขา/ช่วงที่ปีก่อนมียอดน้อยกว่าครึ่งของปีนี้ (เปิดใหม่) เทียบไม่ได้ → ไม่โชว์ % (กันขึ้นเป็นหมื่น %) */
   const okLY = o.sales!=null && o.salesLY!=null && o.salesLY>=.5*o.sales;
   o.ss = okLY ? {sales:o.sales,trans:o.trans,cust:o.cust,ebitda:o.ebitda,colB:o.colB} : {sales:null,trans:null,cust:null,ebitda:null,colB:null};
+  /* Complaint เป็นจำนวนเรื่อง ไม่ผูกกับยอดขาย → YTD นับทุกเดือนที่มีการบันทึก (เดือนที่ยังไม่ส่งยอดขายแต่มีคอมเพลนแล้วก็นับ ตรงกับช่อง YTD ในไฟล์) */
+  if(typeof state!=='undefined' && state.ytd && months.length>1 && months[0]===0){
+    ['cmp'].forEach(k=>{ let t=null; for(const b of blist) for(let m=0;m<12;m++){ const x=b.v[k]&&b.v[k][m]; if(x!=null) t=(t||0)+x; } o[k]=t; });
+  }
   // พนักงานเป็นจำนวนคน ไม่ใช่ยอดสะสม → ช่วงหลายเดือนให้เฉลี่ยต่อเดือน
   ['staff','staffPlan'].forEach(k=>{ const per=months.map(m=>blist.reduce((s,b)=>s+(b.v[k][m]||0),0)).filter(x=>x>0);
     o[k]= per.length ? per.reduce((s,x)=>s+x,0)/per.length : null; });
@@ -474,7 +478,7 @@ const SLIDES = [
    ],
    chart:{title:'%COS และ %COL เทียบงบ', unit:'% ของยอดขาย', pct:true,
      lines:[['cos','COS Actual (%)','#F66B21',false],['cosBud','COS Budget (%)','#F66B21',true],['colPct','COL Actual (%)','#0F766E',false],['colBud','COL Budget (%)','#0F766E',true]], fmt:x=>P(x), axis:x=>P(x,0)},
-   cols:[['COS Actual (%)',o=>o.cos==null?'—':pill(-(o.cos-(o.cosBud??o.cos)),P(o.cos),0,-0.01)],['COS A vs B',o=>bPpt(o.cos,o.cosBud,true)],['COL Actual (%)',o=>o.colPct==null?'—':pill(-(o.colPct-(o.colBud??o.colPct)),P(o.colPct),0,-0.01)],['COL A vs B',o=>bPpt(o.colPct,o.colBud,true)],['Hour Actual',o=>nf(o.hr)],['Hour A vs P',o=>bDiff(o.hr,o.hrPlan,nf,true)],['Productivity Sales',o=>nf(o.prodS)],['Staff Actual / Plan',o=>nf(o.staff,o.staff%1?1:0)+' / '+nf(o.staffPlan,o.staffPlan%1?1:0)]],
+   cols:[['COS Actual (%)',o=>o.cos==null?'—':pill(-(o.cos-(o.cosBud??o.cos)),P(o.cos),0,-0.01)],['COS A vs B',o=>bPpt(o.cos,o.cosBud,true)],['COL Actual (%)',o=>o.colPct==null?'—':pill(-(o.colPct-(o.colBud??o.colPct)),P(o.colPct),0,-0.01)],['COL A vs B',o=>bPpt(o.colPct,o.colBud,true)],['Hour Actual',o=>nf(o.hr)],['Hour A vs P',o=>bDiff(o.hr,o.hrPlan,nf,true)],['Productivity Sales',o=>nf(o.prodS)],['Staff Actual / Plan',o=>nf(o.staff)+' / '+nf(o.staffPlan)]],
    summary:(o,mo,rows)=>{
      const over=rows.filter(r=>r.o.cos!=null&&r.o.cosBud!=null&&r.o.cos>r.o.cosBud).map(r=>r.code||r.label);
      return `${mo} %COS <b>${P(o.cos)}</b> (${pptTxt(o.cos,o.cosBud)} vs งบ) · %COL <b>${P(o.colPct)}</b> (${pptTxt(o.colPct,o.colBud)} vs งบ) · Productivity <b>฿${nf(o.prodS)}/ชม.</b>`+
